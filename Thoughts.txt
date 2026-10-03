@@ -1,4 +1,4 @@
-Random thoughts for the future:
+Random unpolished thoughts for the future:
 
 TODO:
     - Add option to display size label or not
