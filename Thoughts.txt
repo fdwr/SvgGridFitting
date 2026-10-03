@@ -44,6 +44,11 @@ TODO:
         - icons8-fluency-blueprint.svg 24px the grid appears unevenly spaced with 2 or 3 pixels between them.
         - icons8-fluency-artificial-intelligence.svg 40px needs different recentering logic for the gray stems than than the blue balls, because you want the 1.66px thick stems to be centered on 2px even pixels, but you want the 3.33px blue balls to be aligned to the gray stems and thus also centered on even pixels, then rounded out to 4px rather than down to 3px and centered on n.5.
         - LunaSvgTestData\Google Chrome\Chrome Logo.svg the horizontal edge between red and yellow is surprisingly aligned perfectly at all common sizes (8, 12, 16, 20, 28, 32...).
+        - LunaSvgSampleTest\svgs\reshot.com thedighital icon-scottish-female-ENH4GZFT72.svg at 64px appears to look left, but she's not.
+        - LunaSvgSampleTest\svgs\icons8.com fluency picture.svg 28px has a dark gap at the bottom due to alpha overlap.
+        - LunaSvgSampleTest\svgs\reshot.com roundicons icon-trojan-G6A3QR2ZSF.svg 36x36px and 46x46px shows an artifact at the base due to alpha overlap. 
+        - LunaSvgSampleTest\svgs\icons8.com fluency home.svg 32x32px the door and window are fuzzy.
+        - LunaSvgSampleTest\svgs\letter-a-text-variant-svgrepo-com cc0.svg 28x28px the horizontal crossbar if rounded down would yield an asymmetric left stem thicker on the bottom.
 
 Gridfitting prototype - add extended SVG attributes for gridfitting
     Anchor points
