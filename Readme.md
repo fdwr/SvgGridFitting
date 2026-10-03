@@ -1,6 +1,8 @@
 # 🚧 SVG Pixel Snapping (Grid Fitting) 🚧
 Dwayne Robinson 2026-10-01
 
+# 🛑 *Don't bother reading this yet, as it's preliminary.*
+
 # Why - The Problem
 
 SVG is great for resolution independent iconography, but try rendering icons to sizes they weren't designed for, and notice...
@@ -171,6 +173,7 @@ TODO: Centering whole shapes is typically more useful than centering individual 
     - OpenType specification - https://docs.microsoft.com/en-us/typography/opentype/spec/ttch01
 - Libraries and tools
     - LunaSVG - https://github.com/sammycage/lunasvg
+    - [LunaSvgSampleTest](https://github.com/fdwr/LunaSvgSampleTest) - fork where I'll implement grid-fitting.
     - Inkscape SVG editor - https://inkscape.org/
     - Cairo based convertor for SVG to PNG - https://cairosvg.org/
     - Cairo rendering API - https://cairographics.org/download/
