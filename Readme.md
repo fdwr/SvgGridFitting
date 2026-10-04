@@ -98,8 +98,10 @@ More complex path cases may need to apply different adjustments to different *co
     <path
         d="M100,216a20,20,0,1,1-20-20A19.9999,19.9999,0,0,1,100,216Zm84-20a20,20,0,1,0,20,20A19.9999,19.9999,0,0,0,184,196ZM233.252,75.29639
         l-24.1123,84.3955A28.12,28.12,0,0,1,182.2168,180H81.7832a28.12029,28.12029,0,0,1-26.92285-20.30713L30.81445,75.53271c-.04687-.15234-.09082-.30517-.13183-.46044L21.80566,44H12a12,12,0,0,1,0-24H24.82227A20.08558,20.08558,0,0,1,44.05273,34.50537L51.33691,60h170.377A11.99959,11.99959,0,0,1,233.252,75.29639ZM205.80566,84H58.19434l19.74218,69.09863A4.01838,4.01838,0,0,0,81.7832,156H182.2168a4.01824,4.01824,0,0,0,3.84668-2.90186Z"
+
         grid:d="g0 M100,216a20,20,0,1,1-20-20A19.9999,19.9999,0,0,1,100,216Zm84-20a20,20,0,1,0,20,20A19.9999,19.9999,0,0,0,184,196ZM233.252,75.29639
         g1 l-24.1123,84.3955A28.12,28.12,0,0,1,182.2168,180H81.7832a28.12029,28.12029,0,0,1-26.92285-20.30713L30.81445,75.53271c-.04687-.15234-.09082-.30517-.13183-.46044L21.80566,44H12a12,12,0,0,1,0-24H24.82227A20.08558,20.08558,0,0,1,44.05273,34.50537L51.33691,60h170.377A11.99959,11.99959,0,0,1,233.252,75.29639ZM205.80566,84H58.19434l19.74218,69.09863A4.01838,4.01838,0,0,0,81.7832,156H182.2168a4.01824,4.01824,0,0,0,3.84668-2.90186Z"
+
         grid:adjustments="recontour(24); recontour(40) attach(#wheelsTop)"/>
 </svg>
 ```
@@ -126,7 +128,7 @@ It doesn't ensure:
 1. Declaring **anchor** points that can be shared and referenced in microadjustments
 2. Applying micro**adjust**ments:
     1. **Round**ing point coordinates to pixels (e.g. rounding to nearest, floor, ceil, pixel corners, pixel centers, half pixels...)
-    2. **Align**ing shape points to rounded anchors
+    2. **Align**ing shape coordinates to rounded anchors
     3. Appyling microtransforms to **nudge** and **stretch** points
     4. Displacing **contour**s (e.g. thickening a path edge to whole pixels and centering it)
     5. Applying geometric constraints to **separate** components (e.g. separating two lines at least 1 pixel apart)
@@ -151,19 +153,34 @@ TODO: Use icon pixel size of SVG viewport instead? It might be more intuitive, b
 ## Attributes
 
 - `grid:adjust="..."` - applies a series of microadjustments to the coordinates of a shape or the entire shape. This is a screenspace cousin to the `transform` attribute, and unlike `fill` but like `transform`, children do not inherit the property *verbatim* (which would doubly compound the transform), but they may inherit *effects* of the parent's adjustments, such as alignment translations. If you want multiple children to use the same adjustments, either define an adjustment in the `<defs>` section so it's easy to refer to (`adjust="#someDef"`) or use `adjust="inherit"` which explicitly indicates it's safe to inherit the parent adjustment because it wouldn't compound any adverse effects (like a double alignment translation).
-- `grid:adjustments="...; ..."` - a list of semicolon-separated adjustments for `<path>` (no other element supports it).
+- `grid:adjustments="...; ..."` - a list of semicolon-separated adjustments for `<path>` (no other element supports it). Note that path's `adjust` is executed first, shared by all path components. **TODO**: Does this make sense? Should `adjustments` be folded into `adjust`? Are there case you want to shared adjustments to all points in the path, that couldn't be achieved by applying it to a containing `<g>`?
 - `grid:d` - a `<path>` data string like the normal path `d` attribute except it also supports a new `g#` command to specify the **g**rid-fitting index into the adjustments list. 
 
 ## Adjustment operators:
 
-These occur inside an `adjust` attribute (a screen-space cousin to the `transform` attribute).
+These occur inside an `adjust` attribute:
+
+- `round`
+- `floor`
+- `ceil`
+- `recenter`
+- `roundStrokeWidth`
+- `roundStroke`
+- `nudge`
+- `alignShape`
+- `recontour`
+- `grid`
+- `separate`
+- `stretch`
+
+### Details:
 
 - `round(...)` - round value/coordinate to nearest whole integer or multiple of `spacing`, defaulting with halves toward negative infinity (not round to nearest even, which would introduce a staggered appearance).
     - `bias`=0 - the value that determines the pixel/subpixel origin, typically useful for rounding to pixel corners (0) vs pixel centers (0.5). The bias is subtracted from the coordinate before rounding and then added back. e.g. floor(5.2 - 0) + 0 = 5.0, but floor(5.2 - 0.5) + 0.5 = 4.5. The expected is 0 through 0.9999, but it could be larger if the spacing is larger, like 1. 
     - `spacing`=1 - how far apart the rounding is. e.g. 2 is every 2 pixels. 0.5 is every half pixel. The coordinate is divided by the spacing before rounding and then rescaled. e.g. floor(5.2 / 2) * 2 = 4, and floor(7.8 / 2) * 2 = 6, and spacing=2 with bias=1 yielding floor((7.2 - 1.0) / 2.0) * 2.0 +  1.0 = 7.0.
     - `prebias`=bias - value subtracted from the coordinate before rounding.
     - `postbias`=bias - value added to the coordinate after rounding.
-    - TODO: Maybe delete prebias and postbias. They enable rounding halves N.5 up or down when used with ceil/floor, but it's probably easier to just have an explicit mode=nearestLow and mode=nearestHigh.
+    - **TODO**: Maybe delete prebias and postbias. They enable rounding halves N.5 up or down when used with ceil/floor, but it's probably easier to just have an explicit mode=nearestLow and mode=nearestHigh.
     - `mode`=nearestLow - which rounding mode: floor, ceil, nearestLow, nearestHigh, nearest=nearestLow. There is deliberately no round-halves-to-nearest-even, which would yield a staggered appearance graphically.
     - `reorient`=[1 0] - reorient the displacement vector of the coordinate, which is useful for shear and reversing the vector. The default is a unit vector pointing (x=1 y=0) which yields an identity matrix. e.g. [-1 0] reverses the displacement. [1 1] shears the displacement along 45 degrees. [-1 0 0 1] mirrors displacement horizontally. [2] scales the displacement 2x for x and y.
     - `preserveTangent`=false - constrain the displacement so it proportionally moves the point, useful at angled corners to preserve the edge tangents. Note it has no effect on 90-degree corners.
@@ -185,7 +202,7 @@ These occur inside an `adjust` attribute (a screen-space cousin to the `transfor
     - `positionBias`=0 - extra rounding bias for the position. TODO: Maybe unnecessary, just putting here now for completeness.
     - **NAMING**: `recenter` would be good, given recentering a shape is exactly the intended use case for this operation (describes higher-level intent more than the low-level operation).
     - **TODO**: Centering whole shapes is typically more useful than centering individual points within a path (that's also useful, but it's best combined with recontouring anyway to adjust the stem thicknesses). So an explicit `recenterShape` would be useful that centers the midpoint of the shape fillbox and translates the whole shape. For distinction, maybe renamed `recenter` to `recenterPoints` when adjusting individual points.
-- `roundStrokeWidth` - round the current stroke width in screen-space to the given spacing.
+- `roundStrokeWidth()` - round the current stroke width in screen-space to the given spacing.
     - `bias`=0 - the value that determines the rounding origin, typically useful for rounding to whole pixels (N.0) vs pixel-and-a-half sizes (N.5). The bias is subtracted from the coordinate before rounding and then added back. e.g. floor(5.2 - 0) + 0 = 5.0, but floor(5.2 - 0.5) + 0.5 = 4.5. The expected is 0 through 0.9999, but it could be larger if the spacing is larger, like 1. 
     - `spacing`=1 - how far apart the rounding is. e.g. 2 is every 2 pixels. 0.5 is every half pixel. The coordinate is divided by the spacing before rounding and then rescaled. e.g. floor(5.2 / 2) * 2 = 4, and floor(7.8 / 2) * 2 = 6, and spacing=2 with bias=1 yielding floor((7.2 - 1.0) / 2.0) * 2.0 +  1.0 = 7.0.
     - `mode`=nearestLow - which rounding mode: floor, ceil, nearestLow, nearestHigh, nearest=nearestLow. There is deliberately no round-halves-to-nearest-even, which would yield a staggered appearance graphically.
