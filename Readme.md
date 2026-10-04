@@ -154,7 +154,7 @@ TODO: Use icon pixel size of SVG viewport instead? It might be more intuitive, b
 
 - `grid:adjust="..."` - applies a series of microadjustments to the coordinates of a shape or the entire shape. This is a screenspace cousin to the `transform` attribute, and unlike `fill` but like `transform`, children do not inherit the property *verbatim* (which would doubly compound the transform), but they may inherit *effects* of the parent's adjustments, such as alignment translations. If you want multiple children to use the same adjustments, either define an adjustment in the `<defs>` section so it's easy to refer to (`adjust="#someDef"`) or use `adjust="inherit"` which explicitly indicates it's safe to inherit the parent adjustment because it wouldn't compound any adverse effects (like a double alignment translation).
 - `grid:adjustments="...; ..."` - a list of semicolon-separated adjustments for `<path>` (no other element supports it). Note that path's `adjust` is executed first, shared by all path components. **TODO**: Does this make sense? Should `adjustments` be folded into `adjust`? Are there case you want to shared adjustments to all points in the path, that couldn't be achieved by applying it to a containing `<g>`?
-- `grid:d` - a `<path>` data string like the normal path `d` attribute except it also supports a new `g#` command to specify the **g**rid-fitting index into the adjustments list. 
+- `grid:d` - a `<path>` data string like the normal path `d` attribute except it also supports a new `g#` command to specify the **g**rid-fitting index into the adjustments list. e.g. `d="g0 M20,30..."`. The default adjustment index is 0 (as if an implicit `g0` was before the string). Each `g` affects the instruction points that *follow* it, but not the current pen position or necessarily the entire component, where `g0 M20,30 g1 L25,35` would apply `g0` to the 20,30 coordinate and `g1` to the 25,35 coordinate, but `g1` does *not* apply to the starting coordinate of the line even though it comes before the `L`.
 
 ## Adjustment operators:
 
@@ -290,7 +290,9 @@ These occur inside an `adjust` attribute:
 
 Integrate this snippet above somewhere:
 
-The SVG working group had some [previous ponderings](https://www.w3.org/Graphics/SVG/WG/wiki/Proposals/SVG_hinting) on the problem, and [OpenType/TrueType typography](https://docs.microsoft.com/en-us/typography/opentype/spec/ttch01) already solved these problems decades ago for glyphs, but implementing a complex nearly Turing-complete instruction language is overkill here (which would hamper adoption and likely increase software security risks), as the problems can be satisfied by a set of new elements and attributes for the following aspects:
+The SVG working group had some [previous ponderings](https://www.w3.org/Graphics/SVG/WG/wiki/Proposals/SVG_hinting) on the problem, and [OpenType/TrueType typography](https://docs.microsoft.com/en-us/typography/opentype/spec/ttch01) already solved these problems decades ago for glyphs, but implementing a complex nearly Turing-complete instruction language is overkill here (which would hamper adoption and likely increase software security risks), as the problems can be satisfied by a set of new elements and attributes for the following aspects.
+
+How does grid-fitting work with non-axis aligned transforms? Should there be entire shape level grid-fitting using the screenspace bounds, such as the four corners of the fillbounds, rather than the screenspace transformed points? I'm thinking of cases like a rotated ellipse.
 
 ## Terms for bikeshed naming
 
