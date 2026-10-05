@@ -15,6 +15,22 @@ SVG is great for resolution independent iconography, but try rendering icons to 
 
   ![Asymmetric edges between connectors](comparison-icons8-fluency-ungroup-objects.png)
 
+- Collapsed comb tines when the SVG canvas is displayed shifted, even at the natural canvas pixel size:
+
+  ![Collapsed comb tines](comparison-icons8-fluency-afro-pick.png)
+
+- Faint gaps between bars in the bar chart:
+
+  ![Faint gaps in the bar chart](comparison-icons8-fluency-bar-chart.png)
+
+- Uneven gridlines:
+
+  ![Uneven](comparison-icons8-fluency-blueprint.png)
+
+- Shifted key caps:
+
+  ![Shifted key caps](comparison-icons8-fluency-keyboard.png)
+
 - **TODO**: Insert more images showing problems. Include: blurry lines, excess detail which becomes a blurry mess, detail collapse, minimum pixel distance, contour offset.
 - **TODO**: Add Pencil for 45 degree angle - LunaSvgTestData\icons8.com\icons8-office-edit XS 16x16.svg
 - **TODO**: Dotted gridlines that collapse at 24px - LunaSvgTestData\icons8.com\icons8-fluency-select-all.svg
@@ -31,14 +47,13 @@ This document extends SVG with microadjustment attributes to snap to pixels and 
 
 ## Design Plan
 
-To vet the design, I intend to, in priority:
-- 1️⃣Implement it in:
-    - 1️⃣[LunaSVG](https://github.com/sammycage/lunasvg)
-    - 2️⃣Javascript polyfill library so webpages can dynamically fit an SVG to the current resolution (because I'm probably not going to update Chromium :b).
-    - 3️⃣[Adobe SVG Native](https://github.com/adobe/svg-native-viewer)
-- 1️⃣Visualize grid-fitting in [LunaSvgSampleTest](https://github.com/fdwr/LunaSvgSampleTest).
-- 2️⃣Create a Node CLI app to automatically apply grid-fitting attributes, which won't be perfect but could apply reasonable defaults.
-- 4️⃣Inkscape support would be nice, to see anchors and edit adjustment properties and see adjustment lists in paths, but so long as priorities 1 and 2 are completed, and so long as Inkscape at least *preserves* the attributes, then I'm happy.
+- ⏳1️⃣ Vet design by implementing it in:
+    - ⏳1️⃣ [LunaSVG](https://github.com/sammycage/lunasvg)
+    - ⏳2️⃣ Javascript polyfill library so webpages can dynamically fit an SVG to the current resolution (because I'm probably not going to update Chromium :b).
+    - ⏳3️⃣ [Adobe SVG Native](https://github.com/adobe/svg-native-viewer)
+- ⏳1️⃣ Visualize grid-fitting in [LunaSvgSampleTest](https://github.com/fdwr/LunaSvgSampleTest).
+- ⏳2️⃣ Create a Node CLI app to automatically apply grid-fitting attributes, which won't be perfect but could apply reasonable defaults.
+- ⏳4️⃣ Inkscape support would be nice, to see anchors and edit adjustment properties and see adjustment lists in paths, but so long as priorities 1 and 2 are completed, and so long as Inkscape at least *preserves* the attributes, then I'm happy.
 
 ## Goals
 
