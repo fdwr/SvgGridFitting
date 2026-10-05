@@ -1513,8 +1513,8 @@ Different ways of centering circles:
             <anchor id="innerAnchor" x="center" y="center" grid:adjust="round()">
         </circle>
 
-    Round circle to pixel corner or pixel center depending on fillbox size:
-    *Within the context of a shape, maybe recenterPoint/recenterShape should by default refer to the parent fillbox, since referring to the fillbox of the anchor itself (a mere point) is useless.
+    Round circle to pixel corner or pixel center depending on fill-box size:
+    *Within the context of a shape, maybe recenterPoint/recenterShape should by default refer to the parent fill-box, since referring to the fill-box of the anchor itself (a mere point) is useless.
         <circle cx="60" cy="40" r="3" fill="red" grid:adjust="attach(#innerAnchor)">
             <anchor id="innerAnchor" x="center" y="center" grid:adjust="recenterPoint(parentFillBounds)">
         </circle>
