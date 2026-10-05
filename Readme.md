@@ -204,8 +204,8 @@ A `<path>` data string like the normal path `d` attribute except it also support
 
 ```xml
 <switch>
-<someShape grid:ppvRange="32 48"/><!-- >=32 and <=48 pixels -->
-<anotherShape grid:ppvRange="16"/><!-- >=16 pixels -->
+<someShape grid:ppvRange="32 48" /><!-- >=32 and <=48 pixels -->
+<anotherShape grid:ppvRange="16" /><!-- >=16 pixels -->
 <defaultShape/>
 </switch>
 ```
