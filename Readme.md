@@ -166,10 +166,10 @@ More complex path cases may need to apply different adjustments to different *co
 
 ### `<grid:anchor/>`
 
-An invisible point to help align shapes to and construct microtransforms to adjust shapes. Anchor coordinates can be individually rounded and shared by multiple geometries for tiny translations and scaling. Anchors are typically defined soon before the shape that uses their `id` in an adjustment attribute. An unspecified x or y defaults to 0.
+An invisible point to help align shapes to and construct microtransforms to adjust shapes. Anchor coordinates can be individually rounded and shared by multiple geometries for tiny translations and scaling. Anchors are typically defined soon before the shape that uses their `id` in an adjustment attribute. An unspecified x or y defaults to 0. Anchors do not extend any bounding box retrieved by [`getBBox`](https://developer.mozilla.org/en-US/docs/Web/API/SVGGraphicsElement/getBBox).
 
-- `x`=0 - x-coordinate in user coordinates, or the keywords `left`/`right`/`center` to refer to use the parent's fill box (parent, since the anchor doesn't have one), when used as a child of a `SVGGeometryElement` (`rect`/`circle`/`path`...) or `g` or `svg` element.
-- `y`=0 - y-coordinate in user coordinates, or the keywords `top`/`bottom`/`center` to refer to use the parent's fill box.
+- `x`=0 - x-coordinate in user coordinates, or the keywords `left`/`right`/`center` to refer to the parent's fill box (parent, since the anchor doesn't have one), when used as a child of a `SVGGeometryElement` (`rect`/`circle`/`path`...) or `g` or `svg` element. Percentages and other units behave similarly to any other shape coordinate.
+- `y`=0 - y-coordinate in user coordinates, or the keywords `top`/`bottom`/`center` to refer to the parent's fill box.
 - `adjust` - series of microadjustments. See attribute description.
 
 ### `<grid:adjustment/>`
