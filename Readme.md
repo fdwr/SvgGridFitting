@@ -120,7 +120,6 @@ Adjustments apply to all points within a shape, and `adjust` can take a *sequenc
          This is essentially a microtranslation of the entire path, and it does not deform the shape. -->
     <circle cx="30" cy="30" r="10" fill="yellow" grid:adjust="recenterShape()" />
 
-    <!-- TODO: Complete the path case here -->
     <!-- Recontour the path so the 2-unit wide stem is properly aligned on either pixel center or pixel corner and
          thickened to a whole pixel -->
     <path d="M0,16 L12,16 L12,28 Z
@@ -134,7 +133,7 @@ More complex path cases may need to apply different adjustments to different *co
 <svg id="ShoppingCart" viewBox="0 0 256 256" width="32" height="32" xmlns:grid="https://github.com/fdwr/LunaSvgSampleTest">
     <grid:anchor id="cartBottom" x="80" y="180" />
     <!-- Ensure at least 1 pixel of separation between the wheel and cart -->
-    <grid:anchor id="wheelsTop" x="80" y="196" adjust="separate(#wheelsTop 1)" />
+    <grid:anchor id="wheelsTop" x="80" y="196" adjust="separate(#cartBottom 1)" />
     <!-- Notice the g0 and g1 directives inside the grid:d path data that state which grid adjustment 0 to N-1 to use from
          the adjustments list. Sadly we can't insert the grid adjustment indices into the standard "d" attribute, or
          the renderers choke (typically failing the whole path, or the reading the string up to that point).
@@ -165,33 +164,65 @@ More complex path cases may need to apply different adjustments to different *co
 
 ## Elements
 
-- `<grid:anchor/>` - an invisible point to help align shapes to and construct microtransforms to adjust shapes. Anchor coordinates can be individually rounded and shared by multiple geometries for tiny translations and scaling. Anchors are typically defined soon before the shape that uses their `id` in an adjustment attribute. An unspecified x or y defaults to 0.
-    - `x`=0 - x-coordinate in user coordinates, or the keywords `left`/`right`/`center` to refer to use the parent's fill box (parent, since the anchor doesn't have one), when used as a child of a `SVGGeometryElement` (`rect`/`circle`/`path`...) or `g` or `svg` element.
-    - `y`=0 - y-coordinate in user coordinates, or the keywords `top`/`bottom`/`center` to refer to use the parent's fill box.
-    - `adjust` - series of microadjustments. See attribute description.
-- `<grid:adjustment/>` - a reusable series of adjustments in the `<defs>` section, including rounding, anchor transforms (nudges), recontouring, and separation contraints, with each adjustment executed in order. e.g. `<adjustment id="myAdjustment" adjust="round(x) floor(y)" />` and `<polygon adjust="#myAdjustment" points="..."/>`. Multiple adjustments can be separated by semicolons to form a list of adjustments, useful for `<path>` where each group of adjustments is referenced by index 0 to N-1.
-    - `id` - name of the adjustment to reuse in an `adjust` attribute later.
-    - `adjust` - the adjustments list definition. This `adjust` attribute can refer to other adjustments (e.g. `adjust="alignShape(...) #someOtherAdjustment"`), but circular references are not allowed (further recursion stops) and implementations should limit expansion to prevent malicious memory allocation failures (e.g. restrict concatenated strings to 1KB-4KB's).
-- `<grid:transformation/>` - a reuseable transformation list in the `<defs>` section (essentially `SVGTransformList`), including the standard `scale`, `translate`, `rotate`, and `shear` operations, plus the new `origin` which is equivalent to `transform-origin` folded directly into the `transform`. Defined transforms may be used in any `transform` attribute, including those on normal geometry along with those in rounding and constraints. The `matrix` function now takes an abbreviated form with just the first two elements, useful for expressing a uniform scale+rotation using a single 2D vector, where  `matrix(scaleX shearXToY)` expands `matrix(scaleX shearXToY -shearXToY scaleX 0 0)` (e.g. rotating by 30 degrees yields [0.866025404 0.5] and expands to [0.866025404 0.5 -0.5 0.866025404 0 0]). e.g. `<transformation id="myTransform" transform="scale(2) translate(100 300)" />` and `<g transform="#myTransform"> ...` or `<transformation id="turn45" transform="matrix(1 1)" />` and `<line adjust="grid(#turn45) round(xy)" x1="10" y1="10" x2="40" y2="40">`. Using noun form `transformation` rather than verb `transform` to avoid confusion with "transform", in that it's not an action applied to the scene, but rather a reusable component useable later by a "transform" statement.
-    - `id` - name of the transformation to use later in a `transform` or `adjust` attribute.
-    - `transform` - the transformation list.
-    TODO: Is `origin` that useful? Should I delete it?
-- `<switch><someShape grid:ppuRange="low high"/><anotherShape ppuRange="low high"/></switch>` - conditionally selects the first shape that matches the given pixel-per-unit range. Anything in the [`switch`](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/switch) outside that range (upper end exclusive) is hidden, just like with `requiredExtensions` and `systemLanguage`.
-TODO: Use icon pixel size of SVG viewport instead? It might be more intuitive, but it might be less useful if you copy a component between icons of different canvas sizes.
+### `<grid:anchor/>`
+
+An invisible point to help align shapes to and construct microtransforms to adjust shapes. Anchor coordinates can be individually rounded and shared by multiple geometries for tiny translations and scaling. Anchors are typically defined soon before the shape that uses their `id` in an adjustment attribute. An unspecified x or y defaults to 0.
+
+- `x`=0 - x-coordinate in user coordinates, or the keywords `left`/`right`/`center` to refer to use the parent's fill box (parent, since the anchor doesn't have one), when used as a child of a `SVGGeometryElement` (`rect`/`circle`/`path`...) or `g` or `svg` element.
+- `y`=0 - y-coordinate in user coordinates, or the keywords `top`/`bottom`/`center` to refer to use the parent's fill box.
+- `adjust` - series of microadjustments. See attribute description.
+
+### `<grid:adjustment/>`
+
+A reusable series of adjustments in the `<defs>` section, including rounding, anchor transforms (nudges), recontouring, and separation contraints, with each adjustment executed in order. e.g. `<adjustment id="myAdjustment" adjust="round(x) floor(y)" />` and `<polygon adjust="#myAdjustment" points="..."/>`. Multiple adjustments can be separated by semicolons to form a list of adjustments, useful for `<path>` where each group of adjustments is referenced by index 0 to N-1.
+
+- `id` - name of the adjustment to reuse in an `adjust` attribute later.
+- `adjust` - the adjustments list definition. This `adjust` attribute can refer to other adjustments (e.g. `adjust="alignShape(...) #someOtherAdjustment"`), but circular references are not allowed (further recursion stops) and implementations should limit expansion to prevent malicious memory allocation failures (e.g. restrict concatenated strings to 1KB-4KB's).
+
+### `<grid:transformation/>`
+
+A reuseable transformation list in the `<defs>` section (essentially `SVGTransformList`), including the standard `scale`, `translate`, `rotate`, and `shear` operations, plus the new `origin` which is equivalent to `transform-origin` folded directly into the `transform`. Defined transforms may be used in any `transform` attribute, including those on normal geometry along with those in rounding and constraints. The `matrix` function now takes an abbreviated form with just the first two elements, useful for expressing a uniform scale+rotation using a single 2D vector, where  `matrix(scaleX shearXToY)` expands `matrix(scaleX shearXToY -shearXToY scaleX 0 0)` (e.g. rotating by 30 degrees yields [0.866025404 0.5] and expands to [0.866025404 0.5 -0.5 0.866025404 0 0]). e.g. `<transformation id="myTransform" transform="scale(2) translate(100 300)" />` and `<g transform="#myTransform"> ...` or `<transformation id="turn45" transform="matrix(1 1)" />` and `<line adjust="grid(#turn45) round(xy)" x1="10" y1="10" x2="40" y2="40">`. Using noun form `transformation` rather than verb `transform` to avoid confusion with "transform", in that it's not an action applied to the scene, but rather a reusable component useable later by a "transform" statement.
+
+- `id` - name of the transformation to use later in a `transform` or `adjust` attribute.
+- `transform` - the transformation list.
+**TODO**: Is `origin` that useful? Should I delete it?
 
 ## Attributes
 
-- `grid:adjust="..."` - applies a series of microadjustments to the coordinates of a shape or the entire shape. This is a screenspace cousin to the `transform` attribute, and unlike `fill` but like `transform`, children do not inherit the property *verbatim* (which would doubly compound the transform), but they may inherit *effects* of the parent's adjustments, such as alignment translations. If you want multiple children to use the same adjustments, either define an adjustment in the `<defs>` section so it's easy to refer to (`adjust="#someDef"`) or use `adjust="inherit"` which explicitly indicates it's safe to inherit the parent adjustment because it wouldn't compound any adverse effects (like a double alignment translation).
-- `grid:adjustments="...; ..."` - a list of semicolon-separated adjustments for `<path>` (no other element supports it). Note that path's `adjust` is executed first, shared by all path components. **TODO**: Does this make sense? Should `adjustments` be folded into `adjust`? Are there case you want to shared adjustments to all points in the path, that couldn't be achieved by applying it to a containing `<g>`?
-- `grid:d` - a `<path>` data string like the normal path `d` attribute except it also supports a new `g#` command to specify the **g**rid-fitting index into the adjustments list. e.g. `d="g0 M20,30..."`. The default adjustment index is 0 (as if an implicit `g0` was before the string). Each `g` affects the instruction points that *follow* it, but not the current pen position or necessarily the entire component, where `g0 M20,30 g1 L25,35` would apply `g0` to the 20,30 coordinate and `g1` to the 25,35 coordinate, but `g1` does *not* apply to the starting coordinate of the line even though it comes before the `L`.
+### `grid:adjust="..."`
+
+Applies a series of microadjustments to the coordinates of a shape or the entire shape. This is a screenspace cousin to the `transform` attribute, and unlike `fill` but like `transform`, children do not inherit the property *verbatim* (which would doubly compound the transform), but they may inherit *effects* of the parent's adjustments, such as alignment translations. If you want multiple children to use the same adjustments, either define an adjustment in the `<defs>` section so it's easy to refer to (`adjust="#someDef"`) or use `adjust="inherit"` which explicitly indicates it's safe to inherit the parent adjustment because it wouldn't compound any adverse effects (like a double alignment translation).
+### `grid:adjustments="...; ..."`
+
+A list of semicolon-separated adjustments for `<path>` (no other element supports it). Note that path's `adjust` is executed first, shared by all path components. **TODO**: Does this make sense? Should `adjustments` be folded into `adjust`? Are there case you want to shared adjustments to all points in the path, that couldn't be achieved by applying it to a containing `<g>`?
+
+### `grid:d`
+
+A `<path>` data string like the normal path `d` attribute except it also supports a new `g#` command to specify the **g**rid-fitting index into the adjustments list. e.g. `d="g0 M20,30..."`. The default adjustment index is 0 (as if an implicit `g0` was before the string). Each `g` affects the instruction points that *follow* it, but not the current pen position or necessarily the entire component, where `g0 M20,30 g1 L25,35` would apply `g0` to the 20,30 coordinate and `g1` to the 25,35 coordinate, but `g1` does *not* apply to the starting coordinate of the line even though it comes before the `L`.
+
+### `grid:ppuRange`
+
+```xml
+<switch>
+<someShape grid:ppvRange="32 48"/><!-- >=32 and <=48 pixels -->
+<anotherShape grid:ppvRange="16"/><!-- >=16 pixels -->
+<defaultShape/>
+</switch>
+```
+
+Conditionally selects the first shape that matches the given pixels-per-view or pixels-per-unit range. Anything in the [`switch`](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/switch) outside that range (upper end exclusive) is hidden, just like with `requiredExtensions` and `systemLanguage`.
+**TODO**: Use icon pixel size of SVG viewport instead? It might be more intuitive, but it might be less useful if you copy a component between icons of different canvas sizes. Support both?
+**NAMING**: pixelsPerUnit and pixelsPerView rather than ppuRange and ppvRange?
 
 ## Adjustment operators:
 
 These occur inside an `adjust` attribute:
 
 - `round`
-- `floor`
-- `ceil`
+    - `floor`
+    - `ceil`
+    - `nearest`
+- `roundVertex`?
 - `recenter`
 - `roundStrokeWidth`
 - `roundStroke`
@@ -204,88 +235,127 @@ These occur inside an `adjust` attribute:
 
 Each operator accepts a variable number of parameters like with `transform`, but unlike `transform`, they are heterogeneous (not just a list of scalars) and support named parameters. e.g. (`recenter(2 ceil)` and `nudge(#someAnchor reorient=[1 1])`) since it can get unwieldly otherwise. Not all operators fully make sense in all contexts, like `roundStrokeWidth` or `recontour` inside an anchor's `adjust` property (since it's a single point with no strokeable content), but such cases are not degenerate errors, treating either with reasonal defaults (`recontour` would center the anchor point given it's default position rounding) or as a nop (`roundStrokeWidth` is ignorable).
 
-### Details:
+### `round(...)`
 
-- `round(...)` - round value/coordinate to nearest whole integer or multiple of `spacing`, defaulting with halves toward negative infinity (not round to nearest even, which would introduce a staggered appearance).
-    - `bias`=0 - the value that determines the pixel/subpixel origin, typically useful for rounding to pixel corners (0) vs pixel centers (0.5). The bias is subtracted from the coordinate before rounding and then added back. e.g. floor(5.2 - 0) + 0 = 5.0, but floor(5.2 - 0.5) + 0.5 = 4.5. The expected is 0 through 0.9999, but it could be larger if the spacing is larger, like 1. 
-    - `spacing`=1 - how far apart the rounding is. e.g. 2 is every 2 pixels. 0.5 is every half pixel. The coordinate is divided by the spacing before rounding and then rescaled. e.g. floor(5.2 / 2) * 2 = 4, and floor(7.8 / 2) * 2 = 6, and spacing=2 with bias=1 yielding floor((7.2 - 1.0) / 2.0) * 2.0 +  1.0 = 7.0.
-    - `prebias`=bias - value subtracted from the coordinate before rounding.
-    - `postbias`=bias - value added to the coordinate after rounding.
-    - **TODO**: Maybe delete prebias and postbias. They enable rounding halves N.5 up or down when used with ceil/floor, but it's probably easier to just have an explicit mode=nearestLow and mode=nearestHigh.
-    - `mode`=nearestLow - which rounding mode: floor, ceil, nearestLow, nearestHigh, nearest=nearestLow. There is deliberately no round-halves-to-nearest-even, which would yield a staggered appearance graphically.
-    - `reorient`=[1 0] - reorient the displacement vector of the coordinate, which is useful for shear and reversing the vector. The default is a unit vector pointing (x=1 y=0) which yields an identity matrix. e.g. [-1 0] reverses the displacement. [1 1] shears the displacement along 45 degrees. [-1 0 0 1] mirrors displacement horizontally. [2] scales the displacement 2x for x and y.
-    - `preserveTangent`=false - constrain the displacement so it proportionally moves the point, useful at angled corners to preserve the edge tangents. Note it has no effect on 90-degree corners.
-    - `requireAlignedAxis`=true - disable rounding if rotation or shear apply to the world-to-screen matrix (only scaling+translation).
-    - `transformReinterprets`=false - mirrored or rotated transformations reinterpret the rounding mode (e.g. horizontally mirroring flips ceil to floor, and rotation swaps x and y).
-    - `directionInverts`=false - a negative edge direction (e.g. a line pointing downward or leftward) inverts the rounding mode, useful for "inward" and "outward" rounding. e.g. For a rectangle with 4 corner points and `ceil` rounding mode, the bottom right corner
-    - `windingInverts`=false
-    - `axes`=xy - restrain displacement to specific axes `x`,`y`,`xy`. TODO: This might be redundant with `reorient` (where a `[0 0 0 1]` matrix would constrain movement to y-only), but then this is much more concise, semantically clearer, and less error prone. So probably worth keeping.
-    - ?`fraction`=1 - a fraction to multiply the displacement by, rather than a full 100%. TODO: This seems completely redundant now with reorient, where you could just say `reorient=0.5`.
-- `floor(... mode=floor ...)` - round attribute toward negative infinity (convenience of `round`).
-    - Inherit all parameters from `round`.
-- `ceil( ... mode=ceil  ...)` - round attribute toward positive infinity (convenience of `round`).
-    - Inherit all parameters from `round`.
-- `roundVertex` ? Maybe pull the more advanced aspects out of `round` related normals and edges, so that rounding can be pure (applicable to 1D scalars and sensible outside paths too).
-- `roundParity(size sizeRoundingMode)` - round to either pixel centers or pixel corners depending on whether the input size is odd or even (after scaled to screen space and rounded).
-    - `size` - an input size in user coordinates (typically the size of a shape or stem thickness) to transform to screen space, round to an integer, and evaluate the parity to determine the rounding bias of 0 for even sizes or 0.5 for odd sizes.
-    - `sizeRoundingMode`=nearestLow - rounding mode for the input size.
-    - `sizeBias` - a bias to add to the screen-space size before rounding, which can be used to change the rounding threshold or invent even/odd parity.
-    - `positionRoundingMode`=nearestLow - rounding mode for the position. TODO: Maybe unnecessary, just putting here now for completeness.
-    - `positionBias`=0 - extra rounding bias for the position. TODO: Maybe unnecessary, just putting here now for completeness.
-    - **NAMING**: `recenter` would be good, given recentering a shape is exactly the intended use case for this operation (describes higher-level intent more than the low-level operation).
-    - **TODO**: Centering whole shapes is typically more useful than centering individual points within a path (that's also useful, but it's best combined with recontouring anyway to adjust the stem thicknesses). So an explicit `recenterShape` would be useful that centers the midpoint of the shape fillbox and translates the whole shape. For distinction, maybe renamed `recenter` to `recenterPoints` when adjusting individual points.
+round value/coordinate to nearest whole integer or multiple of `spacing`, defaulting with halves toward negative infinity (not round to nearest even, which would introduce a staggered appearance).
+- `bias`=0 - the value that determines the pixel/subpixel origin, typically useful for rounding to pixel corners (0) vs pixel centers (0.5). The bias is subtracted from the coordinate before rounding and then added back. e.g. floor(5.2 - 0) + 0 = 5.0, but floor(5.2 - 0.5) + 0.5 = 4.5. The expected is 0 through 0.9999, but it could be larger if the spacing is larger, like 1. 
+- `spacing`=1 - how far apart the rounding is. e.g. 2 is every 2 pixels. 0.5 is every half pixel. The coordinate is divided by the spacing before rounding and then rescaled. e.g. floor(5.2 / 2) * 2 = 4, and floor(7.8 / 2) * 2 = 6, and spacing=2 with bias=1 yielding floor((7.2 - 1.0) / 2.0) * 2.0 +  1.0 = 7.0.
+- `prebias`=bias - value subtracted from the coordinate before rounding.
+- `postbias`=bias - value added to the coordinate after rounding.
+- **TODO**: Maybe delete prebias and postbias. They enable rounding halves N.5 up or down when used with ceil/floor, but it's probably easier to just have an explicit mode=nearestLow and mode=nearestHigh.
+- `mode`=nearestLow - which rounding mode: floor, ceil, nearestLow, nearestHigh, nearest=nearestLow. There is deliberately no round-halves-to-nearest-even, which would yield a staggered appearance graphically.
+- `reorient`=[1 0] - reorient the displacement vector of the coordinate, which is useful for shear and reversing the vector. The default is a unit vector pointing (x=1 y=0) which yields an identity matrix. e.g. [-1 0] reverses the displacement. [1 1] shears the displacement along 45 degrees. [-1 0 0 1] mirrors displacement horizontally. [2] scales the displacement 2x for x and y.
+- `preserveTangent`=false - constrain the displacement so it proportionally moves the point, useful at angled corners to preserve the edge tangents. Note it has no effect on 90-degree corners.
+- `requireAlignedAxis`=true - disable rounding if rotation or shear apply to the world-to-screen matrix (only scaling+translation).
+- `transformReinterprets`=false - mirrored or rotated transformations reinterpret the rounding mode (e.g. horizontally mirroring flips ceil to floor, and rotation swaps x and y).
+- `directionInverts`=false - a negative edge direction (e.g. a line pointing downward or leftward) inverts the rounding mode, useful for "inward" and "outward" rounding. e.g. For a rectangle with 4 corner points and `ceil` rounding mode, the bottom right corner
+- `windingInverts`=false
+- `axes`=xy - restrain displacement to specific axes `x`,`y`,`xy`. TODO: This might be redundant with `reorient` (where a `[0 0 0 1]` matrix would constrain movement to y-only), but then this is much more concise, semantically clearer, and less error prone. So probably worth keeping.
+- ?`fraction`=1 - a fraction to multiply the displacement by, rather than a full 100%. TODO: This seems completely redundant now with reorient, where you could just say `reorient=0.5`.
+
+### `floor(... mode=floor ...)`
+
+round value/coordinate toward negative infinity (convenience function).
+
+- Inherit all parameters from `round`.
+### `ceil( ... mode=ceil  ...)`
+
+round value/coordinate toward positive infinity (convenience function).
+
+- Inherit all parameters from `round`.
+
+### `nearest( ... mode=ceil  ...)`
+
+round value/coordinate toward nearest, with halves rounded toward negative infinity (convenience function).
+- Inherit all parameters from `round`.
+
+### `roundVertex` ?
+
+Maybe pull the more advanced aspects out of `round` related normals and edges, so that rounding can be pure (applicable to 1D scalars and sensible outside paths too).
+
+### `recenter(size, sizeRoundingMode)`
+
+Round to either pixel centers or pixel corners depending on whether the input size is odd or even (after scaled to screen space and rounded).
+
+- `size` - an input size in user coordinates (typically the size of a shape or stem thickness) to transform to screen space, round to an integer, and evaluate the parity to determine the rounding bias of 0 for even sizes or 0.5 for odd sizes.
+- `sizeRoundingMode`=nearestLow - rounding mode for the input size.
+- `sizeBias` - a bias to add to the screen-space size before rounding, which can be used to change the rounding threshold or invent even/odd parity.
+- `positionRoundingMode`=nearestLow - rounding mode for the position. TODO: Maybe unnecessary, just putting here now for completeness.
+- `positionBias`=0 - extra rounding bias for the position. TODO: Maybe unnecessary, just putting here now for completeness.
+- **NAMING**: `recenter` would be good, given recentering a shape is exactly the intended use case for this operation (describes higher-level intent more than the low-level operation).
+- **TODO**: Centering whole shapes is typically more useful than centering individual points within a path (that's also useful, but it's best combined with recontouring anyway to adjust the stem thicknesses). So an explicit `recenterShape` would be useful that centers the midpoint of the shape fillbox and translates the whole shape. For distinction, maybe renamed `recenter` to `recenterPoints` when adjusting individual points.
 - `roundStrokeWidth()` - round the current stroke width in screen-space to the given spacing.
-    - `bias`=0 - the value that determines the rounding origin, typically useful for rounding to whole pixels (N.0) vs pixel-and-a-half sizes (N.5). The bias is subtracted from the coordinate before rounding and then added back. e.g. floor(5.2 - 0) + 0 = 5.0, but floor(5.2 - 0.5) + 0.5 = 4.5. The expected is 0 through 0.9999, but it could be larger if the spacing is larger, like 1. 
-    - `spacing`=1 - how far apart the rounding is. e.g. 2 is every 2 pixels. 0.5 is every half pixel. The coordinate is divided by the spacing before rounding and then rescaled. e.g. floor(5.2 / 2) * 2 = 4, and floor(7.8 / 2) * 2 = 6, and spacing=2 with bias=1 yielding floor((7.2 - 1.0) / 2.0) * 2.0 +  1.0 = 7.0.
-    - `mode`=nearestLow - which rounding mode: floor, ceil, nearestLow, nearestHigh, nearest=nearestLow. There is deliberately no round-halves-to-nearest-even, which would yield a staggered appearance graphically.
-    - `prebias`=bias - value subtracted from the coordinate before rounding. Prebias could be useful for `roundStrokeWidth` to bump up small sizes.
-    - `postbias`=bias - value added to the coordinate after rounding.
-    - `minimum`=1 - minimum pixel width for the stroke. **TODO**: If the stroke width is 0 (a legal value which essentially means no stroke), then it doesn't make sense for this minimum to be enforced. Should this be `iif(originalStrokeWidth > 0, min(roundedStroke, minimumValue), 0)` or something more complex?
-    - **NOTES**: The `roundStrokeWidth` call should come before any functions that use the stroke width in their computations. There should only be one `roundStrokeWidth` in an adjustment, since implementations do not support differing stroke widths within a single geometric shape. `roundStrokeWidth` has no meaningful effect inside an `<anchor>`.
-- `roundStroke()` - round coordinate based on the current stroke-width so that even thicknesses are aligned to pixel corners and odd thicknesses are aligned to pixel centers. e.g. `roundStroke(floor [left top])` to align the top left, `roundStroke()` to center, `roundStroke(floor [left top] directionInverts=true)` for rounding outward.
-    - `mode`=center - rounding mode: floor, ceil, nearestLow, nearestHigh, nearest=nearestLow, centerLow, centerHigh, center=centerLow.
-    - `offset`=[center center] - the rounding point for the stroke, using normalized values 0-1 or keywords `[left/center/right top/center/bottom]`. e.g. `anchor=[left top]` or `anchor=[1 0]` for the top-right or `offset=[0.5 0.5]` for the midpoint.
-    **NAMING**: alignment? basePoint? referenceOrigin? origin? referencePoint? hotSpot? localOffset? normalizedOffset?
-    - `directionInverts` - invert the rounding mode if the edge flows negative. **TODO**: Does this need to be an x,y pair, like `directionInverts=[false true]` if you want asymmetric behavior across axes?
-    - **TODO**: Do I need to consider winding direction at all here? Is `directionInverts` sufficient?
+- `bias`=0 - the value that determines the rounding origin, typically useful for rounding to whole pixels (N.0) vs pixel-and-a-half sizes (N.5). The bias is subtracted from the coordinate before rounding and then added back. e.g. floor(5.2 - 0) + 0 = 5.0, but floor(5.2 - 0.5) + 0.5 = 4.5. The expected is 0 through 0.9999, but it could be larger if the spacing is larger, like 1. 
+- `spacing`=1 - how far apart the rounding is. e.g. 2 is every 2 pixels. 0.5 is every half pixel. The coordinate is divided by the spacing before rounding and then rescaled. e.g. floor(5.2 / 2) * 2 = 4, and floor(7.8 / 2) * 2 = 6, and spacing=2 with bias=1 yielding floor((7.2 - 1.0) / 2.0) * 2.0 +  1.0 = 7.0.
+- `mode`=nearestLow - which rounding mode: floor, ceil, nearestLow, nearestHigh, nearest=nearestLow. There is deliberately no round-halves-to-nearest-even, which would yield a staggered appearance graphically.
+- `prebias`=bias - value subtracted from the coordinate before rounding. Prebias could be useful for `roundStrokeWidth` to bump up small sizes.
+- `postbias`=bias - value added to the coordinate after rounding.
+- `minimum`=1 - minimum pixel width for the stroke. **TODO**: If the stroke width is 0 (a legal value which essentially means no stroke), then it doesn't make sense for this minimum to be enforced. Should this be `iif(originalStrokeWidth > 0, min(roundedStroke, minimumValue), 0)` or something more complex?
+- **NOTES**: The `roundStrokeWidth` call should come before any functions that use the stroke width in their computations. There should only be one `roundStrokeWidth` in an adjustment, since implementations do not support differing stroke widths within a single geometric shape. `roundStrokeWidth` has no meaningful effect inside an `<anchor>`.
+
+### `roundStroke()`
+
+Round coordinate based on the current stroke-width so that even thicknesses are aligned to pixel corners and odd thicknesses are aligned to pixel centers. e.g. `roundStroke(floor [left top])` to align the top left, `roundStroke()` to center, `roundStroke(floor [left top] directionInverts=true)` for rounding outward.
+
+- `mode`=center - rounding mode: floor, ceil, nearestLow, nearestHigh, nearest=nearestLow, centerLow, centerHigh, center=centerLow.
+- `offset`=[center center] - the rounding point for the stroke, using normalized values 0-1 or keywords `[left/center/right top/center/bottom]`. e.g. `anchor=[left top]` or `anchor=[1 0]` for the top-right or `offset=[0.5 0.5]` for the midpoint.
+**NAMING**: alignment? basePoint? referenceOrigin? origin? referencePoint? hotSpot? localOffset? normalizedOffset?
+- `directionInverts` - invert the rounding mode if the edge flows negative. **TODO**: Does this need to be an x,y pair, like `directionInverts=[false true]` if you want asymmetric behavior across axes?
+- **TODO**: Do I need to consider winding direction at all here? Is `directionInverts` sufficient?
 - `nudge(...)` - displace coordinates with a small translation from an anchor's rounding displacement.
-    - `#anchorName` - name of the anchor to fetch the displacement from.
-    - `reorient`=[1 0] - reorient the displacement vector of the coordinate by the matrix. See above.
-    - **NAMING**: Use `translate`? e.g. `translate(#anchorName)` `translate(#anchorName1ForX #anchorName2ForY)`. I could, but it would confusingly differs from transform's `translate` by taking different parameters; it's less clear that it's translating by the tiny *displacement* of the anchor rather than say the x,y coordinate of the anchor; and `translate` can shift objects by huge amounts, whereas `nudge` is semantically more descriptive (a *small* translation).
-    - **NAMING**: Call it `attach` instead? That makes the dependency relationship kinda clear.
-    - **TODO**: Maybe support a sort of "multinudge" to average an anchor between two others? You could achieve this with two fractional nudges `nudge(x #anchor1 0.5) nudge(x #anchor2 0.5)` but `nudgeAverage(x #anchor1 #anchor2)` would be more concise. Maybe `nudge` is variadic rather than taking more positional parameters `nudge(x #anchor1 #anchor2)` or it takes a list `nudge(x [#anchor1 #anchor2])`. Using another operator like `stretch` may be better.
-- `alignShape()` - align an entire shape, rounding the given local anchor. e.g. `alignShape()` to center it. `alignShape(fillBounds floor anchor=[left top])` to floor the top/left. `alignShape(strokeBounds [ceil floor] anchor=#someAnchor)` to align the shape to the given anchor and move rightward and upward.
-    - `bounds`=fillBounds - either an explicit size `[24,16]` or keywords `fill`, `stroke`, `marker`, `clip` like [`SVGGraphicsElement: getBBox`](https://developer.mozilla.org/en-US/docs/Web/API/SVGGraphicsElement/getBBox). The screenspace bounding box is that of the current shape when used on a shape, the union of the contained shapes when used on a group, or the parent shape's bounding box when used on an anchor (because the bounding box of an anchor would be useless emptiness). One usage for explicit sizes is when the shape has decorative asymmetry (like say a feather sticking out of a hat) that would mess up the alignment otherwise. **TODO**: Should such cases be handled purely by anchors? This operator may still be more concise, but inline sizes are not as easy to visualize in an editor (would need a special case), and they can easily get out of sync with the graphic shape during editing. **NAMING**: I'll go with the leaner `fill` rather than add `box` like {fill-box, stroke-box} like [`transform-box`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/transform-box).
-    - `positionRounding`=center - rounding mode: floor, ceil, nearestLow, nearestHigh, nearest=nearestLow, centerLow, centerHigh, center=centerLow.
-    - `anchor`=[center center] - the name of an anchor for the alignment point, or the keywords `[left/center/right top/center/bottom]`. **TODO**: Supporting named anchors seems redundant given that if you're already declaring an anchor, then you could just round it instead `<anchor x="42" y="36" adjust="ceil(x) floor(y)"/>` and `adjust="attach(#someAnchor)"`? Though it's still a bit shorter, especially for the 9 common points where you don't even need to declare an anchor. Maybe I should rename it to something besides anchor, like alignment?
-- `recontour(thickness=0 offset=0.5)` - push the contour in or out by the scaled amount, displacing individual points along their normal vectors to expand or contract the contour. The new point is at the intersection of their displaced parallel lines/curves (usually along the angle bisector, not expansion of the less useful form here https://en.wikipedia.org/wiki/Expansion_(geometry) which just inserts new edge segments). Recontouring should occur before edge/vertex rounding, because recontouring *after* rounding would just misalign edges. Depending on the path shape, it may make more sense to recontour half on either side of a stem, or to recounter just one side (such as the inside, leaving the outside alone). For most cases, just `recontour(1)` for a 1-unit-wide line would give great default results.
-    - `thickness`=0 - the thickness of the stem or size of the object, which is multiplied times the normal vectors and offset fraction to compute an offset for rounding. It accepts a shape too `[width height]` if asymmetric. **NAMING**: size? offset? normalDistance?
-    - `sizeRounding`=nearestLow - rounding mode for the thickness: floor, ceil, nearestLow, nearestHigh, nearest=nearestLow.
-    - `positionRounding`=center - rounding mode for the stem position: floor, ceil, nearestLow, nearestHigh, nearest=nearestLow, centerLow, centerHigh, center=centerLow.
-    - `offset`=[center center] - the rounding point for the stem or shape, using normalized values 0-1 or keywords `[left/center/right top/center/bottom]`. e.g. `offset=[left top]` or `offset=[1 0]` for the top-right or `offset=[0.5 0.5]` for the midpoint.
-    - `directionInverts`=? - invert the rounding mode if the edge flows negative.
-    - `windingInverts`=true - whether winding direction inverts the interpretation of rounding directions (floor <-> ceil). So the inner circle of a path would point the opposite direction than the outer circle, which is typically desirable so both sides of a stroke move in tandem.
-    - `windingDirection`=right - which winding direction the normals point to. The default is right/clockwise, meaning that (from the perspective of a single vertex in the path in the direction of the next edge) the overall direction turns right, and that the normal points right (that is, a clockwise circle would point inward). If the graphics editor emits outer paths that are counter-clockwise, set this to left. The properties `fill-rule:nonzero` to `fill-rule:evenodd` make no difference.
-    - `preserveTangent`=? - try to keep tangent angles consistent. This would be useful on the horizontal stem of the letter "A" so vertical alignment wouldn't thicken or [thinnen](https://quod.lib.umich.edu/m/middle-english-dictionary/dictionary/MED45320) the slanted legs. **TODO**: Should the default be true? Are there any undesireable consequences? How would this interact with the normal vectors?
-    - `preserveArcSizes`=true - preserve arc sizes when possible by nudging neighbors. For example, given the top-left of a rounded rectangle, if you nudge the left edge leftward, then the top neighboring vertex needs to be displaced the same amount leftward, stretching the top crossbar but leaving the arc's shape and surface area the same (otherwise the corners could appear dimmer since rx was essentially elongated). **TODO**: Some cases cannot preserving arc sizes, like the bottom of a "U", where nudging the sides could deform the arcs (since there is no horizontal stem at the base to contract/expand). Should the overall circular shape be preserved (by moving the top ends of the arcs up), or should the arcs be squashed horizontally slightly? I'm thinking the latter, squashing if a single arc or averaging the middle vertex at the bottom if two arcs.
-    - `resize`=true - whether to resize the contour. `true` rounds the stem thickness and displaces opposing neighbor points nearer/farther. `false` is useful if you just want to reposition but not change the stem thickness.
-    - `reposition`=true - whether to reposition the contour. `true` moves the positions of contours (shifting opposing neighbor points in tandem). `false` is useful if you just want to resize but not change position. Note that both resizing and repositioning do move points in the path, but the difference is whether points move in tandom or closer/farther. More often you want *both* to be true for the crispest geometry. Having both false would be a nop.
-    - `minimumSize`=1 - minimum pixel width for the thickness. **TODO**: If the thickness is 0 (a legal value which essentially means no stem width, only outline rounding), then it doesn't make sense for this minimum to be enforced. Should this be `iif(originalStrokeWidth > 0, min(roundedStroke, minimumValue), 0)` or something more complex?
-    - **TODO**: `recontour` can satisfy *some* of the cases of `alignShape`, such as the simple case of a circular path, but recontour can apply locally across an entire path, but it's also limited in that it can't apply a global translation to a group. This should be clarified with examples.
-    - **TODO**: This is a *lot* of parameters. Are any deletable/redundant? Maybe it doesn't matter given good defaults for the common case and named parameters.
-- `grid(xScale=1 yShear=0 xShear=-yShear yScale=xScale xDelta=0 yDelta=0)` - specify the rounding grid used by any later `round` commands (which defaults to integer device pixels), primarily for cases of aligning to half pixels, double pixels, and diagonal pixels. The lattice could be: square, rectangular, rhombic, oblique... e.g. `grid(0.5)` snaps to half pixels; `grid(2)` spans every 2 pixels; and `grid(1)`/`grid()` is identity. Another common one is `grid(0.5 0.5)` which is {45 degrees * sqrt(2) / 2} to align to either pixel centers or pixel corners, but not pixel mid-edges (essentially a 45-degree rotation and scale). **TODO**: Double check if that is actually `grid(1 1)` instead of `grid(0.5 0.5)`.
-    - **TODO**: How does scale interact with `round`'s spacing attribute? Does it compound, making spacing more a "number of units" rather than "number of pixels"?
-- `separate(#anchorName distance axes)` - ensure coordinates are separated by at least the given absolute distance.
-    - `anchorName` - name of anchor to compute distance from.
-    - `distance`=1 - minimum distance to ensure the current point is away from.
-    - `axes`=xy - constrain movement to `x`, `y`, or `xy`.
-    - **TODO**: Should distance always be absolute magnitude? Should there be a mode that clamps absolute values? Should a signed value mean left vs right side?
-    - **NOTES**: this operator is mainly useful with anchors, rather than shape coordinates.
-- `stretch()` - stretch coordinates between two rounded anchors, either linearly or corner-to-corner. e.g. `stretch(#anchor1 #anchor2 mode=corners)`. Note that stretching between two unrounded anchors would be a nop.
-    - `anchor1` - first anchor to read displacement from
-    - `anchor2` - second anchor to read displacement from.
-    - `mode`=linear - values: `corners`, `linear`.
-    - `keepAspectRatio` - when stretching, preserve the aspect ratio along the orthogonal axis. **TODO**: This really only makes sense for linear, as corners is asymmetric. Should it apply to corners somehow too? Delete it until use case known?
+- `#anchorName` - name of the anchor to fetch the displacement from.
+- `reorient`=[1 0] - reorient the displacement vector of the coordinate by the matrix. See above.
+- **NAMING**: Use `translate`? e.g. `translate(#anchorName)` `translate(#anchorName1ForX #anchorName2ForY)`. I could, but it would confusingly differs from transform's `translate` by taking different parameters; it's less clear that it's translating by the tiny *displacement* of the anchor rather than say the x,y coordinate of the anchor; and `translate` can shift objects by huge amounts, whereas `nudge` is semantically more descriptive (a *small* translation).
+- **NAMING**: Call it `attach` instead? That makes the dependency relationship kinda clear.
+- **TODO**: Maybe support a sort of "multinudge" to average an anchor between two others? You could achieve this with two fractional nudges `nudge(x #anchor1 0.5) nudge(x #anchor2 0.5)` but `nudgeAverage(x #anchor1 #anchor2)` would be more concise. Maybe `nudge` is variadic rather than taking more positional parameters `nudge(x #anchor1 #anchor2)` or it takes a list `nudge(x [#anchor1 #anchor2])`. Using another operator like `stretch` may be better.
+
+### `alignShape()`
+
+Align an entire shape, rounding the given local anchor. e.g. `alignShape()` to center it. `alignShape(fillBounds floor anchor=[left top])` to floor the top/left. `alignShape(strokeBounds [ceil floor] anchor=#someAnchor)` to align the shape to the given anchor and move rightward and upward.
+
+- `bounds`=fillBounds - either an explicit size `[24,16]` or keywords `fill`, `stroke`, `marker`, `clip` like [`SVGGraphicsElement: getBBox`](https://developer.mozilla.org/en-US/docs/Web/API/SVGGraphicsElement/getBBox). The screenspace bounding box is that of the current shape when used on a shape, the union of the contained shapes when used on a group, or the parent shape's bounding box when used on an anchor (because the bounding box of an anchor would be useless emptiness). One usage for explicit sizes is when the shape has decorative asymmetry (like say a feather sticking out of a hat) that would mess up the alignment otherwise. **TODO**: Should such cases be handled purely by anchors? This operator may still be more concise, but inline sizes are not as easy to visualize in an editor (would need a special case), and they can easily get out of sync with the graphic shape during editing. **NAMING**: I'll go with the leaner `fill` rather than add `box` like {fill-box, stroke-box} like [`transform-box`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/transform-box).
+- `positionRounding`=center - rounding mode: floor, ceil, nearestLow, nearestHigh, nearest=nearestLow, centerLow, centerHigh, center=centerLow.
+- `anchor`=[center center] - the name of an anchor for the alignment point, or the keywords `[left/center/right top/center/bottom]`. **TODO**: Supporting named anchors seems redundant given that if you're already declaring an anchor, then you could just round it instead `<anchor x="42" y="36" adjust="ceil(x) floor(y)"/>` and `adjust="attach(#someAnchor)"`? Though it's still a bit shorter, especially for the 9 common points where you don't even need to declare an anchor. Maybe I should rename it to something besides anchor, like alignment?
+
+### `recontour(thickness=0 offset=0.5)`
+
+Push the contour in or out by the scaled amount, displacing individual points along their normal vectors to expand or contract the contour. The new point is at the intersection of their displaced parallel lines/curves (usually along the angle bisector, not expansion of the less useful form here https://en.wikipedia.org/wiki/Expansion_(geometry) which just inserts new edge segments). Recontouring should occur before edge/vertex rounding, because recontouring *after* rounding would just misalign edges. Depending on the path shape, it may make more sense to recontour half on either side of a stem, or to recounter just one side (such as the inside, leaving the outside alone). For most cases, just `recontour(1)` for a 1-unit-wide line would give great default results.
+
+- `thickness`=0 - the thickness of the stem or size of the object, which is multiplied times the normal vectors and offset fraction to compute an offset for rounding. It accepts a shape too `[width height]` if asymmetric. **NAMING**: size? offset? normalDistance?
+- `sizeRounding`=nearestLow - rounding mode for the thickness: floor, ceil, nearestLow, nearestHigh, nearest=nearestLow.
+- `positionRounding`=center - rounding mode for the stem position: floor, ceil, nearestLow, nearestHigh, nearest=nearestLow, centerLow, centerHigh, center=centerLow.
+- `offset`=[center center] - the rounding point for the stem or shape, using normalized values 0-1 or keywords `[left/center/right top/center/bottom]`. e.g. `offset=[left top]` or `offset=[1 0]` for the top-right or `offset=[0.5 0.5]` for the midpoint.
+- `directionInverts`=? - invert the rounding mode if the edge flows negative.
+- `windingInverts`=true - whether winding direction inverts the interpretation of rounding directions (floor <-> ceil). So the inner circle of a path would point the opposite direction than the outer circle, which is typically desirable so both sides of a stroke move in tandem.
+- `windingDirection`=right - which winding direction the normals point to. The default is right/clockwise, meaning that (from the perspective of a single vertex in the path in the direction of the next edge) the overall direction turns right, and that the normal points right (that is, a clockwise circle would point inward). If the graphics editor emits outer paths that are counter-clockwise, set this to left. The properties `fill-rule:nonzero` to `fill-rule:evenodd` make no difference.
+- `preserveTangent`=? - try to keep tangent angles consistent. This would be useful on the horizontal stem of the letter "A" so vertical alignment wouldn't thicken or [thinnen](https://quod.lib.umich.edu/m/middle-english-dictionary/dictionary/MED45320) the slanted legs. **TODO**: Should the default be true? Are there any undesireable consequences? How would this interact with the normal vectors?
+- `preserveArcSizes`=true - preserve arc sizes when possible by nudging neighbors. For example, given the top-left of a rounded rectangle, if you nudge the left edge leftward, then the top neighboring vertex needs to be displaced the same amount leftward, stretching the top crossbar but leaving the arc's shape and surface area the same (otherwise the corners could appear dimmer since rx was essentially elongated). **TODO**: Some cases cannot preserving arc sizes, like the bottom of a "U", where nudging the sides could deform the arcs (since there is no horizontal stem at the base to contract/expand). Should the overall circular shape be preserved (by moving the top ends of the arcs up), or should the arcs be squashed horizontally slightly? I'm thinking the latter, squashing if a single arc or averaging the middle vertex at the bottom if two arcs.
+- `resize`=true - whether to resize the contour. `true` rounds the stem thickness and displaces opposing neighbor points nearer/farther. `false` is useful if you just want to reposition but not change the stem thickness.
+- `reposition`=true - whether to reposition the contour. `true` moves the positions of contours (shifting opposing neighbor points in tandem). `false` is useful if you just want to resize but not change position. Note that both resizing and repositioning do move points in the path, but the difference is whether points move in tandom or closer/farther. More often you want *both* to be true for the crispest geometry. Having both false would be a nop.
+- `minimumSize`=1 - minimum pixel width for the thickness. **TODO**: If the thickness is 0 (a legal value which essentially means no stem width, only outline rounding), then it doesn't make sense for this minimum to be enforced. Should this be `iif(originalStrokeWidth > 0, min(roundedStroke, minimumValue), 0)` or something more complex?
+- **TODO**: `recontour` can satisfy *some* of the cases of `alignShape`, such as the simple case of a circular path, but recontour can apply locally across an entire path, but it's also limited in that it can't apply a global translation to a group. This should be clarified with examples.
+- **TODO**: This is a *lot* of parameters. Are any deletable/redundant? Maybe it doesn't matter given good defaults for the common case and named parameters.
+
+### `grid(xScale=1 yShear=0 xShear=-yShear yScale=xScale xDelta=0 yDelta=0)`
+
+Specify the rounding grid used by any later `round` commands (which defaults to integer device pixels), primarily for cases of aligning to half pixels, double pixels, and diagonal pixels. The lattice could be: square, rectangular, rhombic, oblique... e.g. `grid(0.5)` snaps to half pixels; `grid(2)` spans every 2 pixels; and `grid(1)`/`grid()` is identity. Another common one is `grid(0.5 0.5)` which is {45 degrees * sqrt(2) / 2} to align to either pixel centers or pixel corners, but not pixel mid-edges (essentially a 45-degree rotation and scale). **TODO**: Double check if that is actually `grid(1 1)` instead of `grid(0.5 0.5)`.
+
+- **TODO**: How does scale interact with `round`'s spacing attribute? Does it compound, making spacing more a "number of units" rather than "number of pixels"?
+
+### `separate(#anchorName distance axes)` - ensure coordinates are separated by at least the given absolute distance.
+
+- `anchorName` - name of anchor to compute distance from.
+- `distance`=1 - minimum distance to ensure the current point is away from.
+- `axes`=xy - constrain movement to `x`, `y`, or `xy`.
+- **TODO**: Should distance always be absolute magnitude? Should there be a mode that clamps absolute values? Should a signed value mean left vs right side?
+- **NOTES**: this operator is mainly useful with anchors, rather than shape coordinates.
+
+### `stretch()` - stretch coordinates between two rounded anchors, either linearly or corner-to-corner. e.g. `stretch(#anchor1 #anchor2 mode=corners)`. Note that stretching between two unrounded anchors would be a nop.
+
+- `anchor1` - first anchor to read displacement from
+- `anchor2` - second anchor to read displacement from.
+- `mode`=linear - values: `corners`, `linear`.
+- `keepAspectRatio` - when stretching, preserve the aspect ratio along the orthogonal axis. **TODO**: This really only makes sense for linear, as corners is asymmetric. Should it apply to corners somehow too? Delete it until use case known?
 
 # Considerations
 
