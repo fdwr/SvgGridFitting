@@ -29,6 +29,37 @@ This document extends SVG with microadjustment attributes to snap to pixels and 
 - Designing your SVG files on a grid works well when displayed at *that size*, but designing for multiple target sizes (24x24, 32x32...) becomes cumbersome and completely defeats the benefit of *scalable* vector graphics.
 - TrueType glyphs offer an alternative to SVG with powerful grid fitting capabilities, but it has many caveats: hinting is very challenging to graphic designers given the low-level bytecode instruction set, integration into the workflow is more awkward than just adding some lose SVG files (you need append glyphs to the file, assign a numeric id, and reference that opaque number to draw it), and it only supports monochrome color unless the rasterizer supports the latest COLR table with multiple layers and gradients. Additionally, OpenType supports SVG glyphs (not just TrueType glyphs), but there is no equivalent grid fitting support for SVG outlines.
 
+## Design Plan
+
+To vet the design, I intend to, in priority:
+- 1️⃣Implement it in:
+    - 1️⃣[LunaSVG](https://github.com/sammycage/lunasvg)
+    - 2️⃣Javascript polyfill library so webpages can dynamically fit an SVG to the current resolution (because I'm probably not going to update Chromium :b).
+    - 3️⃣[Adobe SVG Native](https://github.com/adobe/svg-native-viewer)
+- 1️⃣Visualize grid-fitting in [LunaSvgSampleTest](https://github.com/fdwr/LunaSvgSampleTest).
+- 2️⃣Create a Node CLI app to automatically apply grid-fitting attributes, which won't be perfect but could apply reasonable defaults.
+- 4️⃣Inkscape support would be nice, to see anchors and edit adjustment properties and see adjustment lists in paths, but so long as priorities 1 and 2 are completed, and so long as Inkscape at least *preserves* the attributes, then I'm happy.
+
+## Goals
+
+It should enable:
+
+- Crisp horizontal and vertical edges
+- Pixel rounded stroke widths
+- Consistent stem thickness of paths
+- Shape symmetry around centers
+- Equal shape spacing and gaps
+- Alignment between separate shapes that are part of a large object
+- Selective removal of small details at smaller PPU's
+- Ensure minimal gaps between items so they don't abut and appear merged
+
+It doesn't ensure:
+
+- Pixel alignment under arbitrary transforms
+- Identical pixel results under different rasterizers
+- Preserved geometry and aspect ratio after grid fitting
+- Automatic good fitting without author intervention
+
 ## At a glance
 
 Grid fitting attributes reside in the `grid:` namespace (or maybe `ps:` for pixel snapping, if you like that more). Here's a simple octagon with every path vertex rounded:
@@ -89,7 +120,7 @@ More complex path cases may need to apply different adjustments to different *co
     <grid:anchor id="cartBottom" x="80" y="180" />
     <!-- Ensure at least 1 pixel of separation between the wheel and cart -->
     <grid:anchor id="wheelsTop" x="80" y="196" adjust="separate(#wheelsTop 1)" />
-    <!-- Note the g0 and g1 directives inside the grid:d path data that state which grid adjustment 0 to N-1 to use from
+    <!-- Notice the g0 and g1 directives inside the grid:d path data that state which grid adjustment 0 to N-1 to use from
          the adjustments list. Sadly we can't insert the grid adjustment indices into the standard "d" attribute, or
          the renderers choke (typically failing the whole path, or the reading the string up to that point).
          So a duplicate "grid:d" is added, and any grid-aware tooling should produce the backwards-compatible
@@ -105,23 +136,6 @@ More complex path cases may need to apply different adjustments to different *co
         grid:adjustments="recontour(24); recontour(40) attach(#wheelsTop)"/>
 </svg>
 ```
-
-It can help achieve:
-
-- Crisp horizontal and vertical edges
-- Consistent stem thickness
-- Shape symmetry around centers
-- Equal shape spacing and gaps
-- Alignment between separate shapes that are part of a large object
-- Selective removal of small details at smaller PPU's
-- Ensure minimal gaps between items so they don't abut and appear merged
-
-It doesn't ensure:
-
-- Pixel alignment under arbitrary transforms
-- Identical pixel results under different rasterizers
-- Preserved geometry and aspect ratio after grid fitting
-- Automatic good fitting without author intervention
 
 # How
 
