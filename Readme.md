@@ -277,7 +277,9 @@ A list of semicolon-separated adjustments for `<path>` (no other element support
 
 ### `grid:d`
 
-An extended `<path>` data string like the normal path `d` attribute that also supports a new `g#` command to specify the **g**rid-fitting index into the adjustments list. e.g. `d="g0 M20,30..."`. The default adjustment index is 0 (as if an implicit `g0` was before the string). Each `g` affects the instruction points that *follow* it, but not the current pen position or necessarily the entire component, where `g0 M20,30 g1 L25,35` would apply `g0` to the 20,30 coordinate and `g1` to the 25,35 coordinate, but `g1` does *not* apply to the starting coordinate of the line even though it comes before the `L`. Note that because path readers are not prepared for foreign path commands, and most choke upon encountering one (either rejecting the entire path, or rendering everything parsed up to that point), it's important to duplicate the standard "d" attribute for compatibility. This is annoying redundancy, but alas necessary because readers do not gracefully step over unknowns.
+An extended `<path>` data string like the normal path `d` attribute that also supports a new `g#` command to specify the **g**rid-fitting index into the adjustments list. e.g. `d="g0 M20,30..."`. The default adjustment index is 0 (as if an implicit `g0` was before the string). Each `g` affects the instruction points that *follow* it, but not the current pen position or necessarily the entire component, where `g0 M20,30 g1 L25,35` would apply `g0` to the 20,30 coordinate and `g1` to the 25,35 coordinate, but `g1` does *not* apply to the starting coordinate of the line even though it comes before the `L`.
+
+Note that because path readers are not prepared for foreign path commands, and most choke upon encountering one (either rejecting the entire path, or rendering everything parsed up to that point), it's important to duplicate the standard "d" attribute for compatibility. This is annoying redundancy, but alas necessary because readers do not gracefully step over unknowns.
 
 ```xml
 <path
@@ -291,13 +293,11 @@ An extended `<path>` data string like the normal path `d` attribute that also su
 />
 ```
 
-### `grid:requiredPpu` / `grid:requiredPpv`
+### `grid:requiredPpv` / `grid:requiredPpu`
 
 Conditionally selects the first shape inside a `<switch>` that matches the required pixels-per-view or pixels-per-unit range, useful for hiding details that would otherwise disappear and just add noise when at small resolutions, like omitting drop shadow, switching a perspective orientation to a flat one (e.g. Windows 7 Notepad in Alt+Tab vs top left system icon), or reducing the number of objects (like a pad with a pencial at large sizes but just the pad at smaller sizes).
 
 Anything in the [`switch`](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/switch) outside that inclusive range is hidden, just like with `requiredExtensions` and `systemLanguage`. Using pixels-per-view is natural for iconography when thinking in terms of the entire SVG canvas (e.g. 20x20, 32x32...). Using pixel-per-unit is less intuitive, but it's more robust if you change the canvas size later (which would mess up any switch ranges since the entire canvas size is now different), if you copy and paste a shape from one SVG to another that might have a different size, or if you change a shape's transform (which would invalidate assumptions about the whole). If only the first component is given, it's treated as a minimum lower bound.
-**TODO**: Use icon pixel size of SVG viewport instead? It might be more intuitive, but it might be less useful if you copy a component between icons of different canvas sizes. Support both?
-**NAMING**: pixelsPerUnit and pixelsPerView rather than ppuRange and ppvRange?
 
 ```xml
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:grid="https://github.com/fdwr/SvgGridFitting" viewBox="0 0 32 32" width="32px" height="32px">
@@ -318,6 +318,8 @@ Anything in the [`switch`](https://developer.mozilla.org/en-US/docs/Web/SVG/Refe
     </switch>
 </svg>
 ```
+
+**NAMING**: pixelsPerUnit and pixelsPerView rather than ppuRange and ppvRange?
 
 ## Adjustment operators:
 
@@ -340,7 +342,7 @@ These occur inside an `adjust` attribute:
 
 Each operator accepts a variable number of parameters like `transform`, but unlike `transform`, they are heterogeneous (not just a list of scalars) and support named parameters. e.g. (`recenter(2 ceil)` and `nudge(#someAnchor reorient=[1 1])`) since it can get unwieldly otherwise. Not all operators fully make sense in all contexts, like `roundStrokeWidth` or `recontour` inside an anchor's `adjust` property (since it's a single point with no strokeable content), but such cases are not degenerate errors, treating either with reasonal defaults (`recontour` would center the anchor point given it's default position rounding) or as a nop (`roundStrokeWidth` is ignorable).
 
-### `round(bias spacing ...)`
+### `round(bias, spacing ...)`
 
 round value/coordinate to nearest whole integer or multiple of `spacing`, defaulting with halves toward negative infinity (not round to nearest even, which would introduce a staggered appearance).
 - `bias`=0 – the value that determines the pixel/subpixel origin, typically useful for rounding to pixel corners (0) vs pixel centers (0.5). The bias is subtracted from the coordinate before rounding and then added back. e.g. floor(5.2 - 0) + 0 = 5.0, but floor(5.2 - 0.5) + 0.5 = 4.5. The expected is 0 through 0.9999, but it could be larger if the spacing is larger, like 1. 
@@ -473,7 +475,7 @@ Round to either pixel centers or pixel corners depending on whether the input si
 **TODO**:
 - Centering *whole* shapes is typically more useful than centering individual points within a path (that's also useful, but it's best combined with recontouring anyway to adjust the stem thicknesses). So an explicit `recenterShape` would be useful that centers the midpoint of the shape fillbox and translates the whole shape. For distinction, maybe renamed `recenter` to `recenterPoints` when adjusting individual points.
 
-### `roundStrokeWidth(bias spacing)`
+### `roundStrokeWidth(bias, spacing)`
 
 Round the current stroke width in screen-space to whole pixels, centering it by default.
 
@@ -565,7 +567,7 @@ Push the contour in or out by the scaled amount, displacing individual points al
 
 - `thickness`=0 – the thickness of the stem or size of the object (since computing stem widths at runtime would be expensive, and there are ambiguous where it can't be known quite what you want), which is multiplied times the normal vectors and offset fraction to compute an offset for rounding. It accepts a shape too `[width height]` if asymmetric. The thickness must be uniform throughout the shape (unless using separate adjustment lists per part). **NAMING**: size? offset? normalDistance? **TODO**: Should `stroke-width` be a special keyword value? If so, does that mostly obviate roundStroke, or is that still worth having because it's simpler?
 - `sizeRounding`=nearestLow – rounding mode for the thickness: floor, ceil, nearestLow, nearestHigh, nearest=nearestLow. Note it's only relevant for `positionRounding=center*`.
-- `positionRounding`=center – rounding mode for the stem position: floor, ceil, nearestLow, nearestHigh, nearest=nearestLow, centerLow, centerHigh, center=centerLow.
+- `positionRounding`=center – rounding mode for the stem position: floor, ceil, nearestLow, nearestHigh, nearest=nearestLow, centerLow, centerHigh, center=centerLow. **TODO**: Should this support a `<rounding>` definition in the `<defs>` section to quickly reuse bias/spacing/mode? e.g. `positionRounding=#myRounding`.
 - `offset`=[center center] – the rounding point for the stem or shape, using normalized values 0-1 or keywords `[left/center/right top/center/bottom]`. e.g. `offset=[left top]` or `offset=[1 0]` for the top-right or `offset=[0.5 0.5]` for the midpoint.
 - `directionInverts`=? – invert the rounding mode if the edge flows negative.
 - `windingInverts`=true – whether winding direction inverts the interpretation of rounding directions (floor <-> ceil). So the inner circle of a path would point the opposite direction than the outer circle, which is typically desirable so both sides of a stroke move in tandem.
@@ -585,7 +587,7 @@ Push the contour in or out by the scaled amount, displacing individual points al
     pixel corner and thickened to a whole pixel.
 -->
 <path d="M0,16 L12,16 L12,28 Z
-            M4,18 L10,23 L10,18 Z" fill="orange" grid:adjust="recontour(2)"/>
+         M4,18 L10,23 L10,18 Z" fill="orange" grid:adjust="recontour(2)"/>
 ```
 
 ### `grid(xScale=1 yShear=0 xShear=-yShear yScale=xScale xDelta=0 yDelta=0)`
