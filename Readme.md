@@ -1,7 +1,7 @@
 # 🚧 SVG Pixel Snapping (Grid Fitting) 🚧
 Dwayne Robinson 2026-10-01
 
-# 🛑 *Don't bother reading this yet, as it's preliminary.*
+# 🛑 *This is preliminary with no working implementation yet*
 
 # Why – The Problem
 
@@ -80,7 +80,7 @@ It doesn't ensure:
 Grid fitting attributes reside in the `grid:` namespace (or maybe `ps:` for pixel snapping, if you like that more). Here's a simple octagon with every path vertex rounded:
 
 ```xml
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:grid="https://github.com/fdwr/LunaSvgSampleTest" viewBox="0 0 40 40" width="36px" height="36px">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:grid="https://github.com/fdwr/SvgGridFitting" viewBox="0 0 40 40" width="36px" height="36px">
     <!-- Simplest case - Round all points in the shape to the nearest pixel corner. -->
     <polygon
       fill="red"
@@ -102,7 +102,7 @@ Grid fitting attributes reside in the `grid:` namespace (or maybe `ps:` for pixe
 Adjustments apply to all points within a shape, and `adjust` can take a *sequence* of microadjustment operations (like `transform`):
 
 ```xml
-<svg xmlns:grid="https://github.com/fdwr/LunaSvgSampleTest" viewBox="0 0 48 48" width="40px" height="40px">
+<svg xmlns:grid="https://github.com/fdwr/SvgGridFitting" viewBox="0 0 48 48" width="40px" height="40px">
     <!-- Round the four points of a rectangle upward (ceil for y) and leftward (floor of x). -->
     <rect x="6" y="6" width="28" height="28" fill="blue" grid:adjust="floor(x) ceil(y)"/>
 
@@ -130,16 +130,20 @@ Adjustments apply to all points within a shape, and `adjust` can take a *sequenc
 More complex path cases may need to apply different adjustments to different *components*, where splitting up the path is not feasible, and so `path` supports supports a *list* of semicolon-delimited adjustments:
 
 ```xml
-<svg id="ShoppingCart" viewBox="0 0 256 256" width="32" height="32" xmlns:grid="https://github.com/fdwr/LunaSvgSampleTest">
+<svg id="ShoppingCart" viewBox="0 0 256 256" width="32" height="32" xmlns:grid="https://github.com/fdwr/SvgGridFitting">
     <grid:anchor id="cartBottom" x="80" y="180" />
+
     <!-- Ensure at least 1 pixel of separation between the wheel and cart -->
     <grid:anchor id="wheelsTop" x="80" y="196" adjust="separate(#cartBottom 1)" />
-    <!-- Notice the g0 and g1 directives inside the grid:d path data that state which grid adjustment 0 to N-1 to use from
-         the adjustments list. Sadly we can't insert the grid adjustment indices into the standard "d" attribute, or
-         the renderers choke (typically failing the whole path, or the reading the string up to that point).
-         So a duplicate "grid:d" is added, and any grid-aware tooling should produce the backwards-compatible
-         "d" attribute by stripping out the "g#" instructions. If older tooling updates the path, the custom
-         attribute would become desynchronized, or more likely lost. -->
+
+    <!--
+        Notice the g0 and g1 directives inside the grid:d path data that state which grid adjustment 0 to N-1 to use from
+        the adjustments list. Sadly we can't insert the grid adjustment indices into the standard "d" attribute, or
+        the renderers choke (typically failing the whole path, or the reading the string up to that point).
+        So a duplicate "grid:d" is added, and any grid-aware tooling should produce the backwards-compatible
+        "d" attribute by stripping out the "g#" instructions. If older tooling updates the path, the custom
+        attribute would become desynchronized, or more likely lost.
+    -->
     <path
         d="M100,216a20,20,0,1,1-20-20A19.9999,19.9999,0,0,1,100,216Zm84-20a20,20,0,1,0,20,20A19.9999,19.9999,0,0,0,184,196ZM233.252,75.29639
         l-24.1123,84.3955A28.12,28.12,0,0,1,182.2168,180H81.7832a28.12029,28.12029,0,0,1-26.92285-20.30713L30.81445,75.53271c-.04687-.15234-.09082-.30517-.13183-.46044L21.80566,44H12a12,12,0,0,1,0-24H24.82227A20.08558,20.08558,0,0,1,44.05273,34.50537L51.33691,60h170.377A11.99959,11.99959,0,0,1,233.252,75.29639ZM205.80566,84H58.19434l19.74218,69.09863A4.01838,4.01838,0,0,0,81.7832,156H182.2168a4.01824,4.01824,0,0,0,3.84668-2.90186Z"
@@ -147,7 +151,8 @@ More complex path cases may need to apply different adjustments to different *co
         grid:d="g0 M100,216a20,20,0,1,1-20-20A19.9999,19.9999,0,0,1,100,216Zm84-20a20,20,0,1,0,20,20A19.9999,19.9999,0,0,0,184,196ZM233.252,75.29639
         g1 l-24.1123,84.3955A28.12,28.12,0,0,1,182.2168,180H81.7832a28.12029,28.12029,0,0,1-26.92285-20.30713L30.81445,75.53271c-.04687-.15234-.09082-.30517-.13183-.46044L21.80566,44H12a12,12,0,0,1,0-24H24.82227A20.08558,20.08558,0,0,1,44.05273,34.50537L51.33691,60h170.377A11.99959,11.99959,0,0,1,233.252,75.29639ZM205.80566,84H58.19434l19.74218,69.09863A4.01838,4.01838,0,0,0,81.7832,156H182.2168a4.01824,4.01824,0,0,0,3.84668-2.90186Z"
 
-        grid:adjustments="recontour(24); recontour(40) attach(#wheelsTop)"/>
+        grid:adjustments="recontour(24); recontour(40) attach(#wheelsTop)"
+    />
 </svg>
 ```
 
@@ -172,6 +177,22 @@ An invisible point to help align shapes to and construct microtransforms to adju
 - `y`=0 – y coordinate in user coordinates, or the keywords `top`/`bottom`/`center` to refer to the parent's fill box.
 - `adjust` – series of microadjustments. See attribute description.
 
+```xml
+<!-- Round the anchor to the nearest pixel corner -->
+<grid:anchor id="someShapeCenter" x="30" y="40" adjust="round()" />
+
+<!-- Round the anchor to the nearest pixel center -->
+<grid:anchor id="differentShapeCenter" x="30" y="40" adjust="round(0.5)" />
+
+<!-- Ensure separation of at least 1 pixel of this anchor from another anchor -->
+<grid:anchor id="wheelsTop" x="80" y="80" adjust="separate(#cartBottom 1)" />
+
+<!-- Round the left anchor leftward and the right anchor rightward, interpolating the middle anchor by their displacements -->
+<grid:anchor id="leftAnchor"  x="100" y="150" adjust="floor()" />
+<grid:anchor id="rightAnchor" x="140" y="150" adjust="ceil()" />
+<grid:anchor id="middleAnchor" x="120" y="150" adjust="stretch(#anchor1 #anchor2)" />
+```
+
 ### `<grid:adjustment/>`
 
 A reusable series of adjustments in the `<defs>` section, including rounding, anchor transforms (nudges), recontouring, and separation contraints, with each adjustment executed in order. e.g. `<adjustment id="myAdjustment" adjust="round(x) floor(y)" />` and `<polygon adjust="#myAdjustment" points="..."/>`. Multiple adjustments can be separated by semicolons to form a list of adjustments, useful for `<path>` where each group of adjustments is referenced by index 0 to N-1.
@@ -192,27 +213,65 @@ A reuseable transformation list in the `<defs>` section (essentially `SVGTransfo
 ### `grid:adjust="..."`
 
 Applies a series of microadjustments to the coordinates of a shape or the entire shape. This is a screenspace cousin to the `transform` attribute, and unlike `fill` but like `transform`, children do not inherit the property *verbatim* (which would doubly compound the transform), but they may inherit *effects* of the parent's adjustments, such as alignment translations. If you want multiple children to use the same adjustments, either define an adjustment in the `<defs>` section so it's easy to refer to (`adjust="#someDef"`) or use `adjust="inherit"` which explicitly indicates it's safe to inherit the parent adjustment because it wouldn't compound any adverse effects (like a double alignment translation).
+
+```xml
+<!-- Floor all the 4 points (corners) of the rectangle -->
+<rect ... adjust="floor()"/>
+
+<!-- Round the stroke width to a whole pixel and recenter the strokes -->
+<rect ... stroke="blue" adjust="roundStrokeWidth() roundStroke()"/>
+```
+
 ### `grid:adjustments="...; ..."`
 
 A list of semicolon-separated adjustments for `<path>` (no other element supports it). Note that path's `adjust` is executed first, shared by all path components. **TODO**: Does this make sense? Should `adjustments` be folded into `adjust`? Are there case you want to shared adjustments to all points in the path, that couldn't be achieved by applying it to a containing `<g>`?
 
-### `grid:d`
-
-A `<path>` data string like the normal path `d` attribute except it also supports a new `g#` command to specify the **g**rid-fitting index into the adjustments list. e.g. `d="g0 M20,30..."`. The default adjustment index is 0 (as if an implicit `g0` was before the string). Each `g` affects the instruction points that *follow* it, but not the current pen position or necessarily the entire component, where `g0 M20,30 g1 L25,35` would apply `g0` to the 20,30 coordinate and `g1` to the 25,35 coordinate, but `g1` does *not* apply to the starting coordinate of the line even though it comes before the `L`.
-
-### `grid:ppuRange`
-
 ```xml
-<switch>
-<someShape grid:ppvRange="32 48" /><!-- >=32 and <=48 pixels -->
-<anotherShape grid:ppvRange="16" /><!-- >=16 pixels -->
-<defaultShape/>
-</switch>
+<!-- List 3 adjustments for various parts of the path "d"ata. -->
+<path ... adjustments="floor(); ceil(); recontour(2)"/>
 ```
 
-Conditionally selects the first shape that matches the given pixels-per-view or pixels-per-unit range. Anything in the [`switch`](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/switch) outside that range (upper end exclusive) is hidden, just like with `requiredExtensions` and `systemLanguage`.
+### `grid:d`
+
+An extended `<path>` data string like the normal path `d` attribute that also supports a new `g#` command to specify the **g**rid-fitting index into the adjustments list. e.g. `d="g0 M20,30..."`. The default adjustment index is 0 (as if an implicit `g0` was before the string). Each `g` affects the instruction points that *follow* it, but not the current pen position or necessarily the entire component, where `g0 M20,30 g1 L25,35` would apply `g0` to the 20,30 coordinate and `g1` to the 25,35 coordinate, but `g1` does *not* apply to the starting coordinate of the line even though it comes before the `L`. Note that because path readers are not prepared for foreign path commands, and most choke upon encountering one (either rejecting the entire path, or rendering everything parsed up to that point), it's important to duplicate the standard "d" attribute for compatibility. This is annoying redundancy, but alas necessary because readers do not gracefully step over unknowns.
+
+```xml
+<path
+    d="M100,216a20,20,0,1,1-20-20A19.9999,19.9999,0,0,1,100,216Zm84-20a20,20,0,1,0,20,20A19.9999,19.9999,0,0,0,184,196ZM233.252,75.29639
+    l-24.1123,84.3955A28.12,28.12,0,0,1,182.2168,180H81.7832a28.12029,28.12029,0,0,1-26.92285-20.30713L30.81445,75.53271c-.04687-.15234-.09082-.30517-.13183-.46044L21.80566,44H12a12,12,0,0,1,0-24H24.82227A20.08558,20.08558,0,0,1,44.05273,34.50537L51.33691,60h170.377A11.99959,11.99959,0,0,1,233.252,75.29639ZM205.80566,84H58.19434l19.74218,69.09863A4.01838,4.01838,0,0,0,81.7832,156H182.2168a4.01824,4.01824,0,0,0,3.84668-2.90186Z"
+
+    grid:d="g0 M100,216a20,20,0,1,1-20-20A19.9999,19.9999,0,0,1,100,216Zm84-20a20,20,0,1,0,20,20A19.9999,19.9999,0,0,0,184,196ZM233.252,75.29639
+    g1 l-24.1123,84.3955A28.12,28.12,0,0,1,182.2168,180H81.7832a28.12029,28.12029,0,0,1-26.92285-20.30713L30.81445,75.53271c-.04687-.15234-.09082-.30517-.13183-.46044L21.80566,44H12a12,12,0,0,1,0-24H24.82227A20.08558,20.08558,0,0,1,44.05273,34.50537L51.33691,60h170.377A11.99959,11.99959,0,0,1,233.252,75.29639ZM205.80566,84H58.19434l19.74218,69.09863A4.01838,4.01838,0,0,0,81.7832,156H182.2168a4.01824,4.01824,0,0,0,3.84668-2.90186Z"
+
+    grid:adjustments="recontour(24); recontour(40) attach(#wheelsTop)"
+/>
+```
+
+### `grid:requiredPpu` / `grid:requiredPpv`
+
+Conditionally selects the first shape inside a `<switch>` that matches the required pixels-per-view or pixels-per-unit range. Anything in the [`switch`](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/switch) outside that inclusive range is hidden, just like with `requiredExtensions` and `systemLanguage`. Using pixels-per-view is natural for iconography when thinking in terms of the entire SVG canvas (e.g. 20x20, 32x32...). Using pixel-per-unit is less intuitive, but it's more robust if you change the canvas size later (which would mess up any switch ranges since the entire canvas size is now different), if you copy and paste a shape from one SVG to another that might have a different size, or if you change a shape's transform (which would invalidate assumptions about the whole). If only the first component is given, it's treated as a minimum lower bound.
 **TODO**: Use icon pixel size of SVG viewport instead? It might be more intuitive, but it might be less useful if you copy a component between icons of different canvas sizes. Support both?
 **NAMING**: pixelsPerUnit and pixelsPerView rather than ppuRange and ppvRange?
+
+```xml
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:grid="https://github.com/fdwr/SvgGridFitting" viewBox="0 0 32 32" width="32px" height="32px">
+    <switch>
+        <shapeA grid:requiredPpv="32" /><!-- icon is >=32, with room for detail -->
+        <shapeB grid:requiredPpv="16 32" /><!-- icon is >=16 pixels, less detailed -->
+        <shapeC/><!-- Fine details are too crowded to display, and so use simpler shape -->
+    </switch>
+</svg>
+```
+
+```xml
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:grid="https://github.com/fdwr/SvgGridFitting" viewBox="0 0 32 32" width="32px" height="32px">
+    <switch>
+        <shapeA grid:requiredPpu="1" /><!-- The icon is >= 1:1, meaning at least 1 pixel per user unit, with room for detail -->
+        <shapeB grid:requiredPpu="0.5" /><!-- The icon has at last a half pixel per user unit, less detailed -->
+        <shapeC/><!-- Fine details are too crowded to display, and so use simpler shape -->
+    </switch>
+</svg>
+```
 
 ## Adjustment operators:
 
