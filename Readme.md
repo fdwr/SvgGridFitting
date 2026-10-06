@@ -472,12 +472,13 @@ Round to either pixel centers or pixel corners depending on whether the input si
 
 **NAMING**:
 - `recenter` seems good, given recentering a shape is exactly the intended use case for this operation (describes higher-level intent more than the low-level operation). Previously I called it `roundParity`, which made sense logically (you're checking whether something is even or odd and rounding with a bias accordingly), but it didn't semantically capture the *intent*, which is to *center* things.
+
 **TODO**:
 - Centering *whole* shapes is typically more useful than centering individual points within a path (that's also useful, but it's best combined with recontouring anyway to adjust the stem thicknesses). So an explicit `recenterShape` would be useful that centers the midpoint of the shape fillbox and translates the whole shape. For distinction, maybe renamed `recenter` to `recenterPoints` when adjusting individual points.
 
 ### `roundStrokeWidth(bias, spacing)`
 
-Round the current stroke width in screen-space to whole pixels, centering it by default.
+Round the current stroke width in screen-space to whole pixels, rounding it to nearest-low by default. The `roundStrokeWidth()` call should come before any functions that use the stroke width in their computations, like `roundStroke()`. There should only be one `roundStrokeWidth()` in an adjustment sequence, since implementations do not support differing stroke widths within a single geometric shape. The last one present wins.
 
 - `bias`=0 – the value that determines the rounding origin, typically useful for rounding to whole pixels (N.0) vs pixel-and-a-half sizes (N.5). The bias is subtracted from the coordinate before rounding and then added back. e.g. floor(5.2 - 0) + 0 = 5.0, but floor(5.2 - 0.5) + 0.5 = 4.5. The expected is 0 through 0.9999, but it could be larger if the spacing is larger, like 1. 
 - `spacing`=1 – how far apart the rounding is. e.g. 2 is every 2 pixels. 0.5 is every half pixel. The coordinate is divided by the spacing before rounding and then rescaled. e.g. floor(5.2 / 2) * 2 = 4, and floor(7.8 / 2) * 2 = 6, and spacing=2 with bias=1 yielding floor((7.2 - 1.0) / 2.0) * 2.0 +  1.0 = 7.0.
@@ -485,7 +486,9 @@ Round the current stroke width in screen-space to whole pixels, centering it by 
 - `prebias`=bias – value subtracted from the coordinate before rounding. Prebias could be useful for `roundStrokeWidth` to bump up small sizes.
 - `postbias`=bias – value added to the coordinate after rounding.
 - `minimum`=1 – minimum pixel width for the stroke. If the stroke width is 0 (a legal value which essentially means no stroke), this is ignored. **TODO**: For zero stroke width, it makes no sense for this minimum to be enforced, but should the equation be `iif(originalStrokeWidth > 0, min(roundedStroke, minimumValue), 0)` or something more complex?
-- **NOTES**: The `roundStrokeWidth` call should come before any functions that use the stroke width in their computations. There should only be one `roundStrokeWidth` in an adjustment, since implementations do not support differing stroke widths within a single geometric shape. `roundStrokeWidth` has no meaningful effect inside an `<anchor>`. The last one present wins.
+
+**TODO**:
+- Does `roundStrokeWidth` have any meaningful effect inside an `<anchor>`? Maybe it does when used in conjunction with `alignShape(stroke ...)`.
 
 ```xml
 <circle cx="50" cy="50" r="20" fill="none" stroke-width="3" stroke="blue" grid:adjust="roundStrokeWidth()"/>
@@ -495,7 +498,7 @@ Round the current stroke width in screen-space to whole pixels, centering it by 
 ```
 
 **NOTES**:
-- It's generally desireable to call `roundStrokeWidth` and `roundStroke` in sequence, but I could see cases where you only want to round the position of the stroke (leaving the width as-is) and maybe cases where you want to round the stroke width and leave the position unchanged (though the latter is less likely).
+- It's generally desireable to call `roundStrokeWidth` and `roundStroke` in sequence, but I could see cases where you *only* want to round the position of the stroke (leaving the width as-is) and maybe cases where you want to round the stroke thickness but leave the position unchanged (though the latter seems less likely).
 
 ### `roundStroke()`
 
