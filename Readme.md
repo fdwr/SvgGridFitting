@@ -217,7 +217,7 @@ An invisible point to help anchor other shapes' points to and construct microtra
 -->
 <grid:anchor id="leftAnchor"   x="100" y="150" adjust="floor()" />
 <grid:anchor id="rightAnchor"  x="140" y="150" adjust="ceil()" />
-<grid:anchor id="middleAnchor" x="120" y="150" adjust="stretch(#anchor1 #anchor2)" />
+<grid:anchor id="middleAnchor" x="120" y="150" adjust="stretch(#leftAnchor #rightAnchor)" />
 ```
 
 **TODO**:
@@ -722,7 +722,7 @@ Stretch coordinates between two rounded anchors, either linearly or corner-to-co
 -->
 <grid:anchor id="leftAnchor"   x="100" y="150" adjust="floor()" />
 <grid:anchor id="rightAnchor"  x="140" y="150" adjust="ceil()" />
-<grid:anchor id="middleAnchor" x="120" y="150" adjust="stretch(#anchor1 #anchor2)" />
+<grid:anchor id="middleAnchor" x="120" y="150" adjust="stretch(#leftAnchor #rightAnchor)" />
 
 <!--
     Round the two corners outward, then stretching the points outward, yielding crisp outer edges
