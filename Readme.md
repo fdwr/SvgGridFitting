@@ -524,7 +524,7 @@ Displace coordinates with a small translation from an anchor's rounding displace
 - **NAMING**: Call it `attach` instead? That makes the dependency relationship kinda clear.
 - **TODO**: Maybe support a sort of "multinudge" to average an anchor between two others? You could achieve this with two fractional nudges `nudge(x #anchor1 0.5) nudge(x #anchor2 0.5)` but `nudgeAverage(x #anchor1 #anchor2)` would be more concise. Maybe `nudge` is variadic rather than taking more positional parameters `nudge(x #anchor1 #anchor2)` or it takes a list `nudge(x [#anchor1 #anchor2])`. Using another operator like `stretch` may be better.
 
-### `alignShape(bounds positionRounding)`
+### `alignShape(bounds, positionRounding)`
 
 Align an entire shape, rounding the given local anchor. e.g. `alignShape()` to center it. `alignShape(fillBounds floor anchor=[left top])` to floor the top/left. `alignShape(strokeBounds [ceil floor] anchor=#someAnchor)` to align the shape to the given anchor and move rightward and upward.
 
@@ -653,7 +653,7 @@ Specify the rounding grid used by any later `round` commands (which defaults to 
 <rect ... grid:adjust="grid(0.5 0.5) round(spacing=2)"/>
 ```
 
-### `separate(#anchorName distance axes)`
+### `separate(#anchorName, distance, axes)`
 
 Ensure coordinates are separated by at least the given absolute distance.
 
