@@ -203,10 +203,10 @@ An invisible point to help anchor other shapes' points to and construct microtra
 
 ```xml
 <!-- Round the anchor to the nearest pixel corner -->
-<grid:anchor id="someShapeCenter" x="30" y="40" grid:adjust="round()" />
+<grid:anchor id="someShapeCenter" x="30" y="40" adjust="round()" />
 
 <!-- Round the anchor to the nearest pixel center -->
-<grid:anchor id="differentShapeCenter" x="30" y="40" grid:adjust="round(0.5)" />
+<grid:anchor id="differentShapeCenter" x="30" y="40" adjust="round(xy 0.5)" />
 
 <!-- Ensure separation of at least 1 pixel of this anchor from another anchor -->
 <grid:anchor id="wheelsTop" x="80" y="80" grid:adjust="separate(#cartBottom 1)" />
@@ -215,9 +215,9 @@ An invisible point to help anchor other shapes' points to and construct microtra
     Round the left anchor leftward and the right anchor rightward, interpolating the middle anchor by
     their displacements
 -->
-<grid:anchor id="leftAnchor"   x="100" y="150" grid:adjust="floor()" />
-<grid:anchor id="rightAnchor"  x="140" y="150" grid:adjust="ceil()" />
-<grid:anchor id="middleAnchor" x="120" y="150" grid:adjust="stretch(#anchor1 #anchor2)" />
+<grid:anchor id="leftAnchor"   x="100" y="150" adjust="floor()" />
+<grid:anchor id="rightAnchor"  x="140" y="150" adjust="ceil()" />
+<grid:anchor id="middleAnchor" x="120" y="150" adjust="stretch(#anchor1 #anchor2)" />
 ```
 
 **TODO**:
@@ -423,7 +423,7 @@ Convenience function to round value/coordinate toward negative infinity.
 - Inherit all parameters from `round`.
 
 ```xml
-<grid:anchor id="someAnchor" x="42" y="7" grid:adjust="floor()"/>
+<grid:anchor id="someAnchor" x="42" y="7" adjust="floor()"/>
 ```
 
 ### `ceil(... mode=ceil ...)`
@@ -433,7 +433,7 @@ Convenience function to round value/coordinate toward positive infinity.
 - Inherit all parameters from `round`.
 
 ```xml
-<grid:anchor id="someAnchor" x="42" y="7" grid:adjust="ceil()"/>
+<grid:anchor id="someAnchor" x="42" y="7" adjust="ceil()"/>
 ```
 
 ### `nearest(... mode=nearestLow ...)`
@@ -441,7 +441,7 @@ Convenience function to round value/coordinate toward positive infinity.
 Convenience function to round value/coordinate toward nearest integer, with halves rounded toward negative infinity (ties rounded low).
 
 ```xml
-<grid:anchor id="someAnchor" x="42" y="7" grid:adjust="nearest()"/>
+<grid:anchor id="someAnchor" x="42" y="7" adjust="nearest()"/>
 ```
 
 - Inherit all parameters from `round`.
@@ -700,7 +700,7 @@ Ensure coordinates are separated by at least the given absolute distance.
 - `axes`=xy – constrain movement to `x`, `y`, or `xy`. **TODO**: Supporting [x y] distance should obviate this parameter, I think.
 
 ```xml
-<grid:anchor id="wheelsTop" x="80" y="196" grid:adjust="separate(#cartBottom 1)" />
+<grid:anchor id="wheelsTop" x="80" y="196" adjust="separate(#cartBottom 1)" />
 ```
 
 **NOTES**:
@@ -720,16 +720,16 @@ Stretch coordinates between two rounded anchors, either linearly or corner-to-co
     Round the left anchor leftward and the right anchor rightward, interpolating the middle anchor by
     their displacements
 -->
-<grid:anchor id="leftAnchor"   x="100" y="150" grid:adjust="floor()" />
-<grid:anchor id="rightAnchor"  x="140" y="150" grid:adjust="ceil()" />
-<grid:anchor id="middleAnchor" x="120" y="150" grid:adjust="stretch(#anchor1 #anchor2)" />
+<grid:anchor id="leftAnchor"   x="100" y="150" adjust="floor()" />
+<grid:anchor id="rightAnchor"  x="140" y="150" adjust="ceil()" />
+<grid:anchor id="middleAnchor" x="120" y="150" adjust="stretch(#anchor1 #anchor2)" />
 
 <!--
     Round the two corners outward, then stretching the points outward, yielding crisp outer edges
     and scaling the shape proportions consistently.
 -->
-<grid:anchor id="topLeftAnchor"     x="1" y="1" grid:adjust="floor()" />
-<grid:anchor id="bottomRightAnchor" x="39" y="39" grid:adjust="ceil()" />
+<grid:anchor id="topLeftAnchor"     x="1" y="1" adjust="floor()" />
+<grid:anchor id="bottomRightAnchor" x="39" y="39" adjust="ceil()" />
 <polygon
     fill="red"
     stroke="none"
