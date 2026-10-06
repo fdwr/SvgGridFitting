@@ -368,9 +368,9 @@ round value/coordinate to nearest whole integer or multiple of `spacing`, defaul
 - `mode`=nearestLow – which rounding mode. There is deliberately no round-halves-to-nearest-even, which would yield a staggered appearance graphically.
     - `floor` - round value/coordinate toward negative infinity.
     - `ceil` - round value/coordinate toward positive infinity.
-    - `nearestLow` - round halves low toward negative infinity.
-    - `nearestHigh` - round halves low toward positive infinity.
-    - `nearest` - short alias of `nearestLow` (typically graphics rounds leftward)
+    - `nearestLow` - round toward nearest integer with halves/ties low toward negative infinity.
+    - `nearestHigh` - round toward nearest integer with halves/ties high toward positive infinity.
+    - `nearest` - short alias of `nearestLow` (typically graphics rounds leftward).
 - `reorient`=[1 0] – reorient the displacement vector of the coordinate, which is useful for shear and reversing the vector. The default is a unit vector pointing (x=1 y=0) which yields an identity matrix. e.g. [-1 0] reverses the displacement. [1 1] shears the displacement along 45 degrees. [-1 0 0 1] mirrors displacement horizontally. [2] scales the displacement 2x for x and y. **NAMING**: `matrix`? `displaceBy`? `displacementMatrix`? `projectAlong`? `along`?
 - `preserveTangent`=false – constrain the displacement so it proportionally moves the point, useful at angled corners to preserve the edge tangents. Note it has no effect on 90-degree corners.
 - `requireAlignedAxis`=true – disable rounding if rotation or shear apply to the world-to-screen matrix (only scaling+translation).
@@ -418,7 +418,7 @@ round value/coordinate to nearest whole integer or multiple of `spacing`, defaul
 
 ### `floor(... mode=floor ...)`
 
-Round value/coordinate toward negative infinity (convenience function).
+Convenience function to round value/coordinate toward negative infinity.
 
 - Inherit all parameters from `round`.
 
@@ -428,7 +428,7 @@ Round value/coordinate toward negative infinity (convenience function).
 
 ### `ceil(... mode=ceil ...)`
 
-Round value/coordinate toward positive infinity (convenience function).
+Convenience function to round value/coordinate toward positive infinity.
 
 - Inherit all parameters from `round`.
 
@@ -438,7 +438,7 @@ Round value/coordinate toward positive infinity (convenience function).
 
 ### `nearest(... mode=nearestLow ...)`
 
-Round value/coordinate toward nearest integer, with halves rounded toward negative infinity (convenience function).
+Convenience function to round value/coordinate toward nearest integer, with halves rounded toward negative infinity (ties rounded low).
 
 ```xml
 <grid:anchor id="someAnchor" x="42" y="7" grid:adjust="nearest()"/>
