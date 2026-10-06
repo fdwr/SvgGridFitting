@@ -65,7 +65,7 @@ It should enable:
 - Shape symmetry around centers
 - Equal shape spacing and gaps
 - Alignment between separate shapes that are part of a large object
-- Selective removal of small details at smaller PPU's
+- Selective removal of small details at smaller pixels per unit.
 - Constraints like minimal gaps between items so they don't collapse/abut and appear merged
 - Simple implementations (not a TrueType-level stack-based instruction executor)
 - Simple authoring experience with no programming experience needed
@@ -128,7 +128,7 @@ Adjustments apply to all points within a shape, and `adjust` can take a *sequenc
         down vertically
     -->
     <rect x="16" y="16" width="18" height="18" fill="green" grid:adjust="attach(#inner-anchor)">
-        <grid:anchor id="inner-anchor" x="left" y="bottom" grid:adjust="nearest(axes=x) ceil(axes=y)"/>
+        <grid:anchor id="inner-anchor" x="left" y="bottom" grid:adjust="nearest(x) ceil(y)"/>
     </rect>
 
     <!--
@@ -229,7 +229,7 @@ A reusable series of adjustments in the `<defs>` section, including rounding, an
 
 ```xml
 <defs>
-    <adjustment id="myAdjustment" grid:adjust="round(axes=x) floor(axes=y)" />
+    <adjustment id="myAdjustment" grid:adjust="round(x) floor(y)" />
     <adjustment id="myAdjustmentList" grid:adjust="floor(); ceil(); recontour(2)"/>
     <adjustment id="concatenatedAdjustmentList" grid:adjust="#myAdjustment; #myAdjustmentList"/>
 </defs>
@@ -356,26 +356,27 @@ These occur inside an `adjust` attribute:
 
 Each operator accepts a variable number of parameters like `transform`, but unlike `transform`, they are heterogeneous (not just a list of scalars) and support named parameters. e.g. (`recenter(2 ceil)` and `nudge(#someAnchor reorient=[1 1])`) since it can get unwieldly otherwise. Not all operators fully make sense in all contexts, like `roundStrokeWidth` or `recontour` inside an anchor's `adjust` property (since it's a single point with no strokeable content), but such cases are not degenerate errors, treating either with reasonal defaults (`recontour` would center the anchor point given it's default position rounding) or as a nop (`roundStrokeWidth` is ignorable).
 
-### `round(bias, spacing ...)`
+### `round(axes, bias, spacing ...)`
 
 round value/coordinate to nearest whole integer or multiple of `spacing`, defaulting with halves toward negative infinity (not round to nearest even, which would introduce a staggered appearance).
+
+- `axes`=xy – which axes to round: `x`,`y`,`xy`. **TODO**: Consider that technically this is redundant with `reorient` (where a `[0 0 0 1]` matrix would constrain movement to y-only), but then this is much more concise, semantically clearer, and less error prone. So probably worth keeping. Additionally, keeping the `axes` fixes a problem with positional parameters where saying `floor(x, 0.5)` is clear enough that you're flooring x with a bias of 0.5, but saying `floor(0.5)` looks like you're flooring the input value 0.5, which is confusing.
 - `bias`=0 – the value that determines the pixel/subpixel origin, typically useful for rounding to pixel corners (0) vs pixel centers (0.5). The bias is subtracted from the coordinate before rounding and then added back. e.g. floor(5.2 - 0) + 0 = 5.0, but floor(5.2 - 0.5) + 0.5 = 4.5. The expected is 0 through 0.9999, but it could be larger if the spacing is larger, like 1. 
 - `spacing`=1 – how far apart the rounding is in grid units. e.g. Given the default grid of device pixels, spacing 2 means every 2 pixels, and 0.5 means every half pixel. The coordinate is divided by the spacing before rounding and then rescaled afterward. e.g. floor(5.2 / 2) * 2 = 4, and floor(7.8 / 2) * 2 = 6, and spacing=2 with bias=1 yielding floor((7.2 - 1.0) / 2.0) * 2.0 +  1.0 = 7.0.
 - `prebias`=bias – value subtracted from the coordinate before rounding.
-- `postbias`=bias – value added to the coordinate after rounding. **TODO**: Maybe delete prebias and postbias. They enable rounding halves N.5 up or down when used with ceil/floor, but it's probably easier to just have an explicit mode=nearestLow and mode=nearestHigh.
+- `postbias`=bias – value added to the coordinate after rounding. **TODO**: Maybe delete prebias and postbias. They enable rounding halves N.5 up or down when used with ceil/floor, but it's probably easier to just have an explicit mode=nearestLow and mode=nearestHigh. It also enables weirdness like being able to translate by large amounts in screenspace, which isn't the intent of grid fitting - it's just intended to slightly nudge points by a pixel fraction or two.
 - `mode`=nearestLow – which rounding mode. There is deliberately no round-halves-to-nearest-even, which would yield a staggered appearance graphically.
     - `floor` - round value/coordinate toward negative infinity.
     - `ceil` - round value/coordinate toward positive infinity.
     - `nearestLow` - round halves low toward negative infinity.
     - `nearestHigh` - round halves low toward positive infinity.
     - `nearest` - short alias of `nearestLow` (typically graphics rounds leftward)
-- `reorient`=[1 0] – reorient the displacement vector of the coordinate, which is useful for shear and reversing the vector. The default is a unit vector pointing (x=1 y=0) which yields an identity matrix. e.g. [-1 0] reverses the displacement. [1 1] shears the displacement along 45 degrees. [-1 0 0 1] mirrors displacement horizontally. [2] scales the displacement 2x for x and y.
+- `reorient`=[1 0] – reorient the displacement vector of the coordinate, which is useful for shear and reversing the vector. The default is a unit vector pointing (x=1 y=0) which yields an identity matrix. e.g. [-1 0] reverses the displacement. [1 1] shears the displacement along 45 degrees. [-1 0 0 1] mirrors displacement horizontally. [2] scales the displacement 2x for x and y. **NAMING**: `matrix`? `displaceBy`? `displacementMatrix`? `projectAlong`? `along`?
 - `preserveTangent`=false – constrain the displacement so it proportionally moves the point, useful at angled corners to preserve the edge tangents. Note it has no effect on 90-degree corners.
 - `requireAlignedAxis`=true – disable rounding if rotation or shear apply to the world-to-screen matrix (only scaling+translation).
-- `transformReinterprets`=false – mirrored or rotated transformations reinterpret the rounding mode (e.g. horizontally mirroring flips ceil to floor, and rotation swaps x and y).
+- `transformReinterprets`=true – mirrored or rotated transformations reinterpret the rounding mode (e.g. horizontally mirroring flips ceil to floor, and rotation swaps x and y).
 - `directionInverts`=false – a negative edge direction (e.g. a line pointing downward or leftward) inverts the rounding mode, useful for "inward" and "outward" rounding. e.g. For a rectangle with 4 corner points and `ceil` rounding mode, the bottom right corner
 - `windingInverts`=false – whether winding direction inverts the interpretation of rounding directions (floor <-> ceil).
-- `axes`=xy – restrain displacement to specific axes `x`,`y`,`xy`. **TODO**: This might be redundant with `reorient` (where a `[0 0 0 1]` matrix would constrain movement to y-only), but then this is much more concise, semantically clearer, and less error prone. So probably worth keeping.
 - ?`fraction`=1 – a fraction to multiply the displacement by, rather than a full 100%. **TODO**: This seems completely redundant now with reorient, where you could just say `reorient=0.5`.
 
 ```xml
@@ -383,22 +384,37 @@ round value/coordinate to nearest whole integer or multiple of `spacing`, defaul
 <rect ... grid:adjust="round()"/>
 
 <!-- Round to every pixel center using half bias -->
-<rect ... grid:adjust="round(0.5)"/>
+<rect ... grid:adjust="round(xy 0.5)"/>
 
 <!-- Floor to every half pixel -->
-<rect ... grid:adjust="round(0 0.5 mode=floor)"/>
+<rect ... grid:adjust="round(xy, 0, 0.5, mode=floor)"/>
 
 <!-- Round up to every two pixels (even) only along x -->
-<rect ... grid:adjust="round(0 2 axes=x mode=ceil)"/>
+<rect ... grid:adjust="round(x spacing=2 mode=ceil)"/>
 
 <!-- Round up to every two pixels (odd) only along y -->
-<rect ... grid:adjust="round(1 2 axes=y mode=ceil)"/>
+<rect ... grid:adjust="round(y 1 2 mode=ceil)"/>
 
-<!-- Round along x and displace along y at a 45-degree corner to preserve the angle -->
-<rect ... grid:adjust="round(axes=x reorient=[1 1])"/>
+<!-- Round along x, and displace along y at a 45-degree corner to preserve the angle -->
+<rect ... grid:adjust="round(x reorient=[1 1])"/>
 ```
 
-**TOOD**: There are many common cases for rounding that could be expressed as a single keyword, like: upward, downward, leftward, rightward (achieved via floor/ceil and rounding only one axis), or inward, outward (achieved via floor/ceil and flipping based on a point's edge directions). Should these be added as keywords, should I include some common definitions here for the `<defs>` section to define?
+**TOOD**:
+- Should any attributes related to edges/normals/winding be factored out into a separate operator, leaving round to be pure point rounding?
+- There are many common cases for rounding that could be expressed as a single keyword, like: upward, downward, leftward, rightward (achieved via floor/ceil and rounding only one axis), or inward, outward (achieved via floor/ceil and flipping based on a point's edge directions). Should these be added as keywords, should I include some common definitions here for the `<defs>` section to define?
+
+```xml
+<defs>
+    <adjustment id="roundUpward"    adjust="round(y mode=floor)">
+    <adjustment id="roundDownward"  adjust="round(y mode=ceil )">
+    <adjustment id="roundLeftward"  adjust="round(x mode=floor)">
+    <adjustment id="roundRightward" adjust="round(x mode=ceil )">
+    ...
+    <!-- I'm not sure about these ... -->
+    <adjustment id="roundInward"    adjust="round(x mode=floor directionInverts=true)">
+    <adjustment id="roundOutward"   adjust="round(x mode=ceil  directionInverts=true)">
+</defs>
+```
 
 ### `floor(... mode=floor ...)`
 
