@@ -294,56 +294,86 @@ These occur inside an `adjust` attribute:
 
 Each operator accepts a variable number of parameters like with `transform`, but unlike `transform`, they are heterogeneous (not just a list of scalars) and support named parameters. e.g. (`recenter(2 ceil)` and `nudge(#someAnchor reorient=[1 1])`) since it can get unwieldly otherwise. Not all operators fully make sense in all contexts, like `roundStrokeWidth` or `recontour` inside an anchor's `adjust` property (since it's a single point with no strokeable content), but such cases are not degenerate errors, treating either with reasonal defaults (`recontour` would center the anchor point given it's default position rounding) or as a nop (`roundStrokeWidth` is ignorable).
 
-### `round(...)`
+### `round(bias spacing ...)`
 
 round value/coordinate to nearest whole integer or multiple of `spacing`, defaulting with halves toward negative infinity (not round to nearest even, which would introduce a staggered appearance).
 - `bias`=0 – the value that determines the pixel/subpixel origin, typically useful for rounding to pixel corners (0) vs pixel centers (0.5). The bias is subtracted from the coordinate before rounding and then added back. e.g. floor(5.2 - 0) + 0 = 5.0, but floor(5.2 - 0.5) + 0.5 = 4.5. The expected is 0 through 0.9999, but it could be larger if the spacing is larger, like 1. 
-- `spacing`=1 – how far apart the rounding is. e.g. 2 is every 2 pixels. 0.5 is every half pixel. The coordinate is divided by the spacing before rounding and then rescaled. e.g. floor(5.2 / 2) * 2 = 4, and floor(7.8 / 2) * 2 = 6, and spacing=2 with bias=1 yielding floor((7.2 - 1.0) / 2.0) * 2.0 +  1.0 = 7.0.
+- `spacing`=1 – how far apart the rounding is in grid units. e.g. Given the default grid of device pixels, spacing 2 means every 2 pixels, and 0.5 means every half pixel. The coordinate is divided by the spacing before rounding and then rescaled afterward. e.g. floor(5.2 / 2) * 2 = 4, and floor(7.8 / 2) * 2 = 6, and spacing=2 with bias=1 yielding floor((7.2 - 1.0) / 2.0) * 2.0 +  1.0 = 7.0.
 - `prebias`=bias – value subtracted from the coordinate before rounding.
 - `postbias`=bias – value added to the coordinate after rounding.
 - **TODO**: Maybe delete prebias and postbias. They enable rounding halves N.5 up or down when used with ceil/floor, but it's probably easier to just have an explicit mode=nearestLow and mode=nearestHigh.
-- `mode`=nearestLow – which rounding mode: floor, ceil, nearestLow, nearestHigh, nearest=nearestLow. There is deliberately no round-halves-to-nearest-even, which would yield a staggered appearance graphically.
+- `mode`=nearestLow – which rounding mode. There is deliberately no round-halves-to-nearest-even, which would yield a staggered appearance graphically.
+    - `floor` - round value/coordinate toward negative infinity.
+    - `ceil` - round value/coordinate toward positive infinity.
+    - `nearestLow` - round halves low toward negative infinity.
+    - `nearestHigh` - round halves low toward positive infinity.
+    - `nearest` - short alias of `nearestLow` (typically graphics rounds leftward)
 - `reorient`=[1 0] – reorient the displacement vector of the coordinate, which is useful for shear and reversing the vector. The default is a unit vector pointing (x=1 y=0) which yields an identity matrix. e.g. [-1 0] reverses the displacement. [1 1] shears the displacement along 45 degrees. [-1 0 0 1] mirrors displacement horizontally. [2] scales the displacement 2x for x and y.
 - `preserveTangent`=false – constrain the displacement so it proportionally moves the point, useful at angled corners to preserve the edge tangents. Note it has no effect on 90-degree corners.
 - `requireAlignedAxis`=true – disable rounding if rotation or shear apply to the world-to-screen matrix (only scaling+translation).
 - `transformReinterprets`=false – mirrored or rotated transformations reinterpret the rounding mode (e.g. horizontally mirroring flips ceil to floor, and rotation swaps x and y).
 - `directionInverts`=false – a negative edge direction (e.g. a line pointing downward or leftward) inverts the rounding mode, useful for "inward" and "outward" rounding. e.g. For a rectangle with 4 corner points and `ceil` rounding mode, the bottom right corner
-- `windingInverts`=false
+- `windingInverts`=false – whether winding direction inverts the interpretation of rounding directions (floor <-> ceil).
 - `axes`=xy – restrain displacement to specific axes `x`,`y`,`xy`. TODO: This might be redundant with `reorient` (where a `[0 0 0 1]` matrix would constrain movement to y-only), but then this is much more concise, semantically clearer, and less error prone. So probably worth keeping.
 - ?`fraction`=1 – a fraction to multiply the displacement by, rather than a full 100%. TODO: This seems completely redundant now with reorient, where you could just say `reorient=0.5`.
 
+```xml
+<!-- Round all the 4 points (corners) of the rectangle -->
+<rect ... adjust="round()"/>
+
+<!-- Round to every pixel center using half bias -->
+<rect ... adjust="round(0.5)"/>
+
+<!-- Floor to every half pixel -->
+<rect ... adjust="round(0 0.5 mode=floor)"/>
+
+<!-- Round up to every two pixels (even) only along x -->
+<rect ... adjust="round(0 2 axes=x mode=ceil)"/>
+
+<!-- Round up to every two pixels (odd) only along y -->
+<rect ... adjust="round(1 2 axes=y mode=ceil)"/>
+
+<!-- Round along x and displace along y at a 45-degree corner to preserve the angle -->
+<rect ... adjust="round(axes=x reorient=[1 1])"/>
+```
+
 ### `floor(... mode=floor ...)`
 
-round value/coordinate toward negative infinity (convenience function).
+Round value/coordinate toward negative infinity (convenience function).
 
 - Inherit all parameters from `round`.
-### `ceil( ... mode=ceil  ...)`
+### `ceil(... mode=ceil ...)`
 
-round value/coordinate toward positive infinity (convenience function).
+Round value/coordinate toward positive infinity (convenience function).
 
 - Inherit all parameters from `round`.
 
-### `nearest( ... mode=ceil  ...)`
+### `nearest(... mode=nearestLow ...)`
 
-round value/coordinate toward nearest, with halves rounded toward negative infinity (convenience function).
+Round value/coordinate toward nearest integer, with halves rounded toward negative infinity (convenience function).
+
 - Inherit all parameters from `round`.
 
-### `roundVertex` ?
+### `roundVertex()` ?
 
-Maybe pull the more advanced aspects out of `round` related normals and edges, so that rounding can be pure (applicable to 1D scalars and sensible outside paths too).
+Maybe pull the more advanced aspects out of `round` related to normals and edges, so that rounding can be pure (then applicable to 1D scalars and sensible outside shapes too).
 
 ### `recenter(size, sizeRoundingMode)`
 
 Round to either pixel centers or pixel corners depending on whether the input size is odd or even (after scaled to screen space and rounded).
 
-- `size` – an input size in user coordinates (typically the size of a shape or stem thickness) to transform to screen space, round to an integer, and evaluate the parity to determine the rounding bias of 0 for even sizes or 0.5 for odd sizes.
+- `size` – an input size in user coordinates (typically the size of a shape or stem thickness) to transform to screen space, round to an integer, and evaluate the parity to determine the position rounding bias of 0 for even sizes or 0.5 for odd sizes.
 - `sizeRoundingMode`=nearestLow – rounding mode for the input size.
-- `sizeBias` – a bias to add to the screen-space size before rounding, which can be used to change the rounding threshold or invent even/odd parity.
-- `positionRoundingMode`=nearestLow – rounding mode for the position. TODO: Maybe unnecessary, just putting here now for completeness.
-- `positionBias`=0 – extra rounding bias for the position. TODO: Maybe unnecessary, just putting here now for completeness.
+- `sizeBias` – a bias to add to the screen-space size before rounding, which can be used to change the rounding threshold or invert even/odd parity.
+- `positionRoundingMode`=nearestLow – rounding mode for the position. TODO: Maybe unnecessary, since you'd always want recent to, well, center it - just putting here now for completeness.
+- `positionBias`=0 – extra rounding bias for the position. TODO: Maybe unnecessary since determined by the scaled size's parity - just putting here now for completeness.
 - **NAMING**: `recenter` would be good, given recentering a shape is exactly the intended use case for this operation (describes higher-level intent more than the low-level operation).
 - **TODO**: Centering whole shapes is typically more useful than centering individual points within a path (that's also useful, but it's best combined with recontouring anyway to adjust the stem thicknesses). So an explicit `recenterShape` would be useful that centers the midpoint of the shape fillbox and translates the whole shape. For distinction, maybe renamed `recenter` to `recenterPoints` when adjusting individual points.
-- `roundStrokeWidth()` – round the current stroke width in screen-space to the given spacing.
+
+### `roundStrokeWidth()`
+
+Round the current stroke width in screen-space to the given spacing.
+
 - `bias`=0 – the value that determines the rounding origin, typically useful for rounding to whole pixels (N.0) vs pixel-and-a-half sizes (N.5). The bias is subtracted from the coordinate before rounding and then added back. e.g. floor(5.2 - 0) + 0 = 5.0, but floor(5.2 - 0.5) + 0.5 = 4.5. The expected is 0 through 0.9999, but it could be larger if the spacing is larger, like 1. 
 - `spacing`=1 – how far apart the rounding is. e.g. 2 is every 2 pixels. 0.5 is every half pixel. The coordinate is divided by the spacing before rounding and then rescaled. e.g. floor(5.2 / 2) * 2 = 4, and floor(7.8 / 2) * 2 = 6, and spacing=2 with bias=1 yielding floor((7.2 - 1.0) / 2.0) * 2.0 +  1.0 = 7.0.
 - `mode`=nearestLow – which rounding mode: floor, ceil, nearestLow, nearestHigh, nearest=nearestLow. There is deliberately no round-halves-to-nearest-even, which would yield a staggered appearance graphically.
@@ -361,7 +391,11 @@ Round coordinate based on the current stroke-width so that even thicknesses are 
 **NAMING**: alignment? basePoint? referenceOrigin? origin? referencePoint? hotSpot? localOffset? normalizedOffset?
 - `directionInverts` – invert the rounding mode if the edge flows negative. **TODO**: Does this need to be an x,y pair, like `directionInverts=[false true]` if you want asymmetric behavior across axes?
 - **TODO**: Do I need to consider winding direction at all here? Is `directionInverts` sufficient?
-- `nudge(...)` – displace coordinates with a small translation from an anchor's rounding displacement.
+
+### `nudge(#anchor)`
+
+Displace coordinates with a small translation from an anchor's rounding displacement.
+
 - `#anchorName` – name of the anchor to fetch the displacement from.
 - `reorient`=[1 0] – reorient the displacement vector of the coordinate by the matrix. See above.
 - **NAMING**: Use `translate`? e.g. `translate(#anchorName)` `translate(#anchorName1ForX #anchorName2ForY)`. I could, but it would confusingly differs from transform's `translate` by taking different parameters; it's less clear that it's translating by the tiny *displacement* of the anchor rather than say the x,y coordinate of the anchor; and `translate` can shift objects by huge amounts, whereas `nudge` is semantically more descriptive (a *small* translation).
@@ -376,7 +410,7 @@ Align an entire shape, rounding the given local anchor. e.g. `alignShape()` to c
 - `positionRounding`=center – rounding mode: floor, ceil, nearestLow, nearestHigh, nearest=nearestLow, centerLow, centerHigh, center=centerLow.
 - `anchor`=[center center] – the name of an anchor for the alignment point, or the keywords `[left/center/right top/center/bottom]`. **TODO**: Supporting named anchors seems redundant given that if you're already declaring an anchor, then you could just round it instead `<anchor x="42" y="36" adjust="ceil(x) floor(y)"/>` and `adjust="attach(#someAnchor)"`? Though it's still a bit shorter, especially for the 9 common points where you don't even need to declare an anchor. Maybe I should rename it to something besides anchor, like alignment?
 
-### `recontour(thickness=0 offset=0.5)`
+### `recontour(thickness ...)`
 
 Push the contour in or out by the scaled amount, displacing individual points along their normal vectors to expand or contract the contour. The new point is at the intersection of their displaced parallel lines/curves (usually along the angle bisector, not expansion of the less useful form here https://en.wikipedia.org/wiki/Expansion_(geometry) which just inserts new edge segments). Recontouring should occur before edge/vertex rounding, because recontouring *after* rounding would just misalign edges. Depending on the path shape, it may make more sense to recontour half on either side of a stem, or to recounter just one side (such as the inside, leaving the outside alone). For most cases, just `recontour(1)` for a 1-unit-wide line would give great default results.
 
@@ -393,13 +427,68 @@ Push the contour in or out by the scaled amount, displacing individual points al
 - `reposition`=true – whether to reposition the contour. `true` moves the positions of contours (shifting opposing neighbor points in tandem). `false` is useful if you just want to resize but not change position. Note that both resizing and repositioning do move points in the path, but the difference is whether points move in tandom or closer/farther. More often you want *both* to be true for the crispest geometry. Having both false would be a nop.
 - `minimumSize`=1 – minimum pixel width for the thickness. **TODO**: If the thickness is 0 (a legal value which essentially means no stem width, only outline rounding), then it doesn't make sense for this minimum to be enforced. Should this be `iif(originalStrokeWidth > 0, min(roundedStroke, minimumValue), 0)` or something more complex?
 - **TODO**: `recontour` can satisfy *some* of the cases of `alignShape`, such as the simple case of a circular path, but recontour can apply locally across an entire path, but it's also limited in that it can't apply a global translation to a group. This should be clarified with examples.
-- **TODO**: This is a *lot* of parameters. Are any deletable/redundant? Maybe it doesn't matter given good defaults for the common case and named parameters.
+- **TODO**: This is a *lot* of parameters. Are any deletable/redundant? Maybe having many is okay given good defaults for the common cases and named parameters.
+- **TODO**: Stem inversions could happen if the passed thickness is wider than the actual thickness (e.g. say "H" has wider side stems than the horizontal crossbar, but you pass 2 as the thickness, whereas the crossbar only has 1 unit of thickness). The `minimumSize` won't save you here because that just prevents the equation from moving the stem more than that, *given* a correct thickness to begin with. Can these be detected efficiently? One could try to identify nearest parallel edges to form stems. Tools [like this](https://github.com/simoncozens/Callipers) [#2](https://forum.glyphsapp.com/t/please-test-new-plugin-callipers/3583/39) could be inspiration, but really this would best be analyzed and corrected beforehand. I think this is a case of garbage-in-garbage-out.
 
 ### `grid(xScale=1 yShear=0 xShear=-yShear yScale=xScale xDelta=0 yDelta=0)`
 
-Specify the rounding grid used by any later `round` commands (which defaults to integer device pixels), primarily for cases of aligning to half pixels, double pixels, and diagonal pixels. The lattice could be: square, rectangular, rhombic, oblique... e.g. `grid(0.5)` snaps to half pixels; `grid(2)` spans every 2 pixels; and `grid(1)`/`grid()` is identity. Another common one is `grid(0.5 0.5)` which is {45 degrees * sqrt(2) / 2} to align to either pixel centers or pixel corners, but not pixel mid-edges (essentially a 45-degree rotation and scale). **TODO**: Double check if that is actually `grid(1 1)` instead of `grid(0.5 0.5)`.
+Specify the rounding grid used by any later `round` commands (which defaults to integer device pixels), primarily for cases of aligning to half pixels, double pixels, and diagonal pixels. The lattice could be: square, rectangular, rhombic, oblique... e.g. `grid(0.5)` snaps to half pixels; `grid(2)` spans every 2 pixels; and `grid(1)`/`grid()` is identity. Another common one is `grid(0.5 0.5)` which is {45 degrees * sqrt(2) / 2} to align to either pixel centers or pixel corners, but not pixel mid-edges (essentially a 45-degree rotation and scale). `round`'s spacing parameter and the grid compound, meaning a spacing of 2 on a half pixel grid are equivalent to a grid of 1 pixel. So, the spacing parameter is really more a "number of grid units" rather than "number of pixels".
 
-- **TODO**: How does scale interact with `round`'s spacing attribute? Does it compound, making spacing more a "number of units" rather than "number of pixels"?
+
+```xml
+<!--
+    Default grid, equivalent to no grid() identity.
+
+    x‐‐‐x
+    |   |
+    x‐‐‐x
+-->
+<rect ... adjust="grid() round()"/>
+
+<!--
+    Round to half pixels, equivalent in this case to a spacing of 0.5 on the round.
+
+    x x x
+    x x x
+    x x x
+-->
+<!--  -->
+<rect ... adjust="grid(0.5) round()"/>
+
+<!--
+    Round every 2 pixels, equivalent in this case to a spacing of 2 on the round.
+
+    x‐‐‐o‐‐‐x
+    |   |   |
+    o‐-‐o‐-‐o
+    |   |   |
+    x‐-‐o‐-‐x
+-->
+<!--  -->
+<rect ... adjust="grid(2) round()"/>
+
+<!--
+    Round diagonally to nearest pixel corner or pixel center, but not pixel sides
+
+    x‐‐‐x
+    | x |
+    x‐‐‐x
+-->
+<rect ... adjust="grid(0.5 0.5) round()"/>
+
+<!--
+    Round diagonally double the to nearest pixel corner or pixel center.
+    Both of these are equivalent.
+
+    x‐‐‐o‐‐‐x
+    |   |   |
+    o‐‐‐x‐‐‐o
+    |   |   |
+    x‐‐‐o‐‐‐x
+-->
+<rect ... adjust="grid(1 1)     round(spacing=1)"/>
+<rect ... adjust="grid(0.5 0.5) round(spacing=2)"/>
+```
 
 ### `separate(#anchorName distance axes)`
 
