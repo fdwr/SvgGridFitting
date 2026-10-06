@@ -147,7 +147,7 @@ More complex path cases may need to apply different adjustments to different *co
     <grid:anchor id="cartBottom" x="80" y="180" />
 
     <!-- Ensure at least 1 pixel of separation between the wheel and cart -->
-    <grid:anchor id="wheelsTop" x="80" y="196" adjust="separate(#cartBottom 1)" />
+    <grid:anchor id="wheelsTop" x="80" y="196" grid:adjust="separate(#cartBottom 1)" />
 
     <!--
         Notice the g0 and g1 directives inside the grid:d path data that state which grid adjustment 0 to N-1 to use from
@@ -192,21 +192,21 @@ An invisible point to help anchor other shapes' points to and construct microtra
 
 ```xml
 <!-- Round the anchor to the nearest pixel corner -->
-<grid:anchor id="someShapeCenter" x="30" y="40" adjust="round()" />
+<grid:anchor id="someShapeCenter" x="30" y="40" grid:adjust="round()" />
 
 <!-- Round the anchor to the nearest pixel center -->
-<grid:anchor id="differentShapeCenter" x="30" y="40" adjust="round(0.5)" />
+<grid:anchor id="differentShapeCenter" x="30" y="40" grid:adjust="round(0.5)" />
 
 <!-- Ensure separation of at least 1 pixel of this anchor from another anchor -->
-<grid:anchor id="wheelsTop" x="80" y="80" adjust="separate(#cartBottom 1)" />
+<grid:anchor id="wheelsTop" x="80" y="80" grid:adjust="separate(#cartBottom 1)" />
 
 <!--
     Round the left anchor leftward and the right anchor rightward, interpolating the middle anchor by
     their displacements
 -->
-<grid:anchor id="leftAnchor"   x="100" y="150" adjust="floor()" />
-<grid:anchor id="rightAnchor"  x="140" y="150" adjust="ceil()" />
-<grid:anchor id="middleAnchor" x="120" y="150" adjust="stretch(#anchor1 #anchor2)" />
+<grid:anchor id="leftAnchor"   x="100" y="150" grid:adjust="floor()" />
+<grid:anchor id="rightAnchor"  x="140" y="150" grid:adjust="ceil()" />
+<grid:anchor id="middleAnchor" x="120" y="150" grid:adjust="stretch(#anchor1 #anchor2)" />
 ```
 
 **TODO**: If they do not affect the bounding boxes, what about querying the anchor object itself directly? Should that return an empty but placed box?
@@ -217,13 +217,13 @@ A reusable series of adjustments in the `<defs>` section, including rounding, an
 
 ```xml
 <defs>
-    <adjustment id="myAdjustment" adjust="round(axes=x) floor(axes=y)" />
-    <adjustment id="myAdjustmentList" adjust="floor(); ceil(); recontour(2)"/>
-    <adjustment id="concatenatedAdjustmentList" adjust="#myAdjustment; #myAdjustmentList"/>
+    <adjustment id="myAdjustment" grid:adjust="round(axes=x) floor(axes=y)" />
+    <adjustment id="myAdjustmentList" grid:adjust="floor(); ceil(); recontour(2)"/>
+    <adjustment id="concatenatedAdjustmentList" grid:adjust="#myAdjustment; #myAdjustmentList"/>
 </defs>
 
-<polygon adjust="#myAdjustment" points="..." />
-<path adjust="roundStrokeWidth()" adjustments="#myAdjustmentList" d="..."/>
+<polygon grid:adjust="#myAdjustment" points="..." />
+<path grid:adjust="roundStrokeWidth()" adjustments="#myAdjustmentList" d="..."/>
 ```
 
 - `id` – name of the adjustment to reuse in an `adjust` attribute later.
@@ -240,12 +240,12 @@ A reuseable transformation list in the `<defs>` section (essentially `SVGTransfo
 
 ```xml
 <defs>
-    <transformation id="myTransform" transform="scale(2) translate(100 300)" />
-    <transformation id="turn45Sqrt2" transform="matrix(1 1)" />
+    <grid:transformation id="myTransform" transform="scale(2) translate(100 300)" />
+    <grid:transformation id="turn45Sqrt2" transform="matrix(1 1)" />
 </defs>
 
 <g transform="#myTransform">...</g>
-<line adjust="grid(#turn45Sqrt2) round()" x1="10" y1="10" x2="40" y2="40">
+<line grid:adjust="grid(#turn45Sqrt2) round()" x1="10" y1="10" x2="40" y2="40">
 ```
 
 **TODO**: Is `origin()` that useful? Should I delete it? Why did I originally add it 4 years ago? Hmm...
@@ -258,10 +258,10 @@ Applies a series of microadjustments to the coordinates of a shape or the entire
 
 ```xml
 <!-- Floor all the 4 points (corners) of the rectangle -->
-<rect ... adjust="floor()"/>
+<rect ... grid:adjust="floor()"/>
 
 <!-- Round the stroke width to a whole pixel and recenter the strokes -->
-<rect ... stroke="blue" adjust="roundStrokeWidth() roundStroke()"/>
+<rect ... stroke="blue" grid:adjust="roundStrokeWidth() roundStroke()"/>
 ```
 
 ### `grid:adjustments="...; ..."`
@@ -365,22 +365,22 @@ round value/coordinate to nearest whole integer or multiple of `spacing`, defaul
 
 ```xml
 <!-- Round all the 4 points (corners) of the rectangle -->
-<rect ... adjust="round()"/>
+<rect ... grid:adjust="round()"/>
 
 <!-- Round to every pixel center using half bias -->
-<rect ... adjust="round(0.5)"/>
+<rect ... grid:adjust="round(0.5)"/>
 
 <!-- Floor to every half pixel -->
-<rect ... adjust="round(0 0.5 mode=floor)"/>
+<rect ... grid:adjust="round(0 0.5 mode=floor)"/>
 
 <!-- Round up to every two pixels (even) only along x -->
-<rect ... adjust="round(0 2 axes=x mode=ceil)"/>
+<rect ... grid:adjust="round(0 2 axes=x mode=ceil)"/>
 
 <!-- Round up to every two pixels (odd) only along y -->
-<rect ... adjust="round(1 2 axes=y mode=ceil)"/>
+<rect ... grid:adjust="round(1 2 axes=y mode=ceil)"/>
 
 <!-- Round along x and displace along y at a 45-degree corner to preserve the angle -->
-<rect ... adjust="round(axes=x reorient=[1 1])"/>
+<rect ... grid:adjust="round(axes=x reorient=[1 1])"/>
 ```
 
 **TOOD**: There are many common cases for rounding that could be expressed as a single keyword, like: upward, downward, leftward, rightward (achieved via floor/ceil and rounding only one axis), or inward, outward (achieved via floor/ceil and flipping based on a point's edge directions). Should these be added as keywords, should I include some common definitions here for the `<defs>` section to define?
@@ -437,7 +437,7 @@ Round to either pixel centers or pixel corners depending on whether the input si
     repeated as a parameter. Alternately recontour() may be better if you need to consider angle
     or arc preservation or winding direction.
 -->
-<path fill="none" stroke-width="2" stroke="blue" adjust="recenter(2)" d="..." />
+<path fill="none" stroke-width="2" stroke="blue" grid:adjust="recenter(2)" d="..." />
 
 <!--
     Recenter the free anchor to the given size and attach to both grouped circles.
@@ -447,22 +447,22 @@ Round to either pixel centers or pixel corners depending on whether the input si
     Though, using recenter(20) on the white circle would be wrong, as its diameter could
     given inconsistent displacement from the containing red circle.
 -->
-<anchor id="circleCenter" x="50" y="50" adjust="recenter(40)"/>
-<g adjust="attach(#circleCenter)">
+<anchor id="circleCenter" x="50" y="50" grid:adjust="recenter(40)"/>
+<g grid:adjust="attach(#circleCenter)">
     <circle cx="50" cy="50" r="20" fill="red" />
     <circle cx="50" cy="50" r="10" fill="white" />
 </g>
 
 <!-- Recenter the rectangle and ellipse. Here again alignShape() is recommended instead. -->
-<rect x="50" y="50" width="40" height="20" adjust="recenter([40 20] sizeRounding=ceil)"/>
-<ellipse cx="100" cy="100" rx="20" ry="30" adjust="recenter([60 40] ceil)"/>
+<rect x="50" y="50" width="40" height="20" grid:adjust="recenter([40 20] sizeRounding=ceil)"/>
+<ellipse cx="100" cy="100" rx="20" ry="30" grid:adjust="recenter([60 40] ceil)"/>
 
 <!--
     Here's a case where recenter() is uniquely useful, since alignshape() would use the fill bounds
     of the entire shape which is asymmetric here, thus getting the wrong placement.
 -->
-<g adjust="attach(#circleCenter)">
-    <anchor id="circleCenter" x="50" y="50" adjust="recenter(40)"/>
+<g grid:adjust="attach(#circleCenter)">
+    <anchor id="circleCenter" x="50" y="50" grid:adjust="recenter(40)"/>
     <circle cx="50" cy="50" r="20" fill="red" />
     <circle cx="60" cy="50" r="15" fill="white" />
 </g>
@@ -486,10 +486,10 @@ Round the current stroke width in screen-space to whole pixels, centering it by 
 - **NOTES**: The `roundStrokeWidth` call should come before any functions that use the stroke width in their computations. There should only be one `roundStrokeWidth` in an adjustment, since implementations do not support differing stroke widths within a single geometric shape. `roundStrokeWidth` has no meaningful effect inside an `<anchor>`. The last one present wins.
 
 ```xml
-<circle cx="50" cy="50" r="20" fill="none" stroke-width="3" stroke="blue" adjust="roundStrokeWidth()"/>
+<circle cx="50" cy="50" r="20" fill="none" stroke-width="3" stroke="blue" grid:adjust="roundStrokeWidth()"/>
 
 <!-- Round the screen-space stroke to odd sizes only, 1,3,5... -->
-<circle cx="50" cy="50" r="20" fill="none" stroke-width="3" stroke="blue" adjust="roundStrokeWidth(0.5 2)"/>
+<circle cx="50" cy="50" r="20" fill="none" stroke-width="3" stroke="blue" grid:adjust="roundStrokeWidth(0.5 2)"/>
 ```
 
 **NOTES**:
@@ -506,7 +506,7 @@ Round coordinate based on the current stroke-width so that even thicknesses are 
 - **TODO**: Do I need to consider winding direction at all here? Is `directionInverts` sufficient?
 
 ```xml
-<circle cx="50" cy="50" r="20" stroke-width="3" adjust="roundStrokeWidth() roundStroke()"/>
+<circle cx="50" cy="50" r="20" stroke-width="3" grid:adjust="roundStrokeWidth() roundStroke()"/>
 ```
 
 ### `nudge(#anchor)`
@@ -525,7 +525,7 @@ Align an entire shape, rounding the given local anchor. e.g. `alignShape()` to c
 
 - `bounds`=fill – either an explicit size `[24,16]` or keywords `fill`, `stroke`, `marker`, `clip` like [`SVGGraphicsElement: getBBox`](https://developer.mozilla.org/en-US/docs/Web/API/SVGGraphicsElement/getBBox). The screenspace bounding box is that of the current shape when used on a shape, the union of the contained shapes when used on a group, or the parent shape's bounding box when used on an anchor (because the bounding box of an anchor would be useless emptiness). One usage for explicit sizes is when the shape has decorative asymmetry (like say a feather sticking out of a hat) that would mess up the alignment otherwise. **TODO**: Should such cases be handled purely by anchors? This operator may still be more concise, but inline sizes are not as easy to visualize in an editor (would need a special case), and they can easily get out of sync with the graphic shape during editing. **NAMING**: I'll go with the leaner `fill` rather than add `box` like {fill-box, stroke-box} like [`transform-box`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/transform-box).
 - `positionRounding`=center – rounding mode: floor, ceil, nearestLow, nearestHigh, nearest=nearestLow, centerLow, centerHigh, center=centerLow.
-- `anchor`=[center center] – the name of an anchor for the alignment point, or the keywords `[left/center/right top/center/bottom]`. **TODO**: Supporting named anchors seems redundant given that if you're already declaring an anchor, then you could just round it instead `<anchor x="42" y="36" adjust="ceil(x) floor(y)"/>` and `adjust="attach(#someAnchor)"`? Though it's still a bit shorter, especially for the 9 common points where you don't even need to declare an anchor. Maybe I should rename it to something besides anchor, like alignment?
+- `anchor`=[center center] – the name of an anchor for the alignment point, or the keywords `[left/center/right top/center/bottom]`. **TODO**: Supporting named anchors seems redundant given that if you're already declaring an anchor, then you could just round it instead `<anchor x="42" y="36" grid:adjust="ceil(x) floor(y)"/>` and `adjust="attach(#someAnchor)"`? Though it's still a bit shorter, especially for the 9 common points where you don't even need to declare an anchor. Maybe I should rename it to something besides anchor, like alignment?
 - `sizeRounding`=nearestLow – rounding mode for the size to determine even/odd rounding: floor, ceil, nearestLow, nearestHigh, nearest=nearestLow. Note it's only relevant for `positionRounding=center*`.
 
 ```xml
@@ -601,7 +601,7 @@ Specify the rounding grid used by any later `round` commands (which defaults to 
     |   |
     x‐‐‐x
 -->
-<rect ... adjust="grid() round()"/>
+<rect ... grid:adjust="grid() round()"/>
 
 <!--
     Round to half pixels, equivalent in this case to a spacing of 0.5 on the round.
@@ -611,7 +611,7 @@ Specify the rounding grid used by any later `round` commands (which defaults to 
     x x x
 -->
 <!--  -->
-<rect ... adjust="grid(0.5) round()"/>
+<rect ... grid:adjust="grid(0.5) round()"/>
 
 <!--
     Round every 2 pixels, equivalent in this case to a spacing of 2 on the round.
@@ -623,7 +623,7 @@ Specify the rounding grid used by any later `round` commands (which defaults to 
     x‐-‐o‐-‐x
 -->
 <!--  -->
-<rect ... adjust="grid(2) round()"/>
+<rect ... grid:adjust="grid(2) round()"/>
 
 <!--
     Round diagonally to nearest pixel corner or pixel center, but not pixel sides
@@ -632,7 +632,7 @@ Specify the rounding grid used by any later `round` commands (which defaults to 
     | x |
     x‐‐‐x
 -->
-<rect ... adjust="grid(0.5 0.5) round()"/>
+<rect ... grid:adjust="grid(0.5 0.5) round()"/>
 
 <!--
     Round diagonally double the to nearest pixel corner or pixel center.
@@ -644,8 +644,8 @@ Specify the rounding grid used by any later `round` commands (which defaults to 
     |   |   |
     x‐‐‐o‐‐‐x
 -->
-<rect ... adjust="grid(1 1)     round(spacing=1)"/>
-<rect ... adjust="grid(0.5 0.5) round(spacing=2)"/>
+<rect ... grid:adjust="grid(1 1)     round(spacing=1)"/>
+<rect ... grid:adjust="grid(0.5 0.5) round(spacing=2)"/>
 ```
 
 ### `separate(#anchorName distance axes)`
@@ -657,7 +657,7 @@ Ensure coordinates are separated by at least the given absolute distance.
 - `axes`=xy – constrain movement to `x`, `y`, or `xy`. **TODO**: Supporting [x y] distance should obviate this parameter, I think.
 
 ```xml
-<grid:anchor id="wheelsTop" x="80" y="196" adjust="separate(#cartBottom 1)" />
+<grid:anchor id="wheelsTop" x="80" y="196" grid:adjust="separate(#cartBottom 1)" />
 ```
 
 **NOTES**:
@@ -677,16 +677,16 @@ Stretch coordinates between two rounded anchors, either linearly or corner-to-co
     Round the left anchor leftward and the right anchor rightward, interpolating the middle anchor by
     their displacements
 -->
-<grid:anchor id="leftAnchor"   x="100" y="150" adjust="floor()" />
-<grid:anchor id="rightAnchor"  x="140" y="150" adjust="ceil()" />
-<grid:anchor id="middleAnchor" x="120" y="150" adjust="stretch(#anchor1 #anchor2)" />
+<grid:anchor id="leftAnchor"   x="100" y="150" grid:adjust="floor()" />
+<grid:anchor id="rightAnchor"  x="140" y="150" grid:adjust="ceil()" />
+<grid:anchor id="middleAnchor" x="120" y="150" grid:adjust="stretch(#anchor1 #anchor2)" />
 
 <!--
     Round the two corners outward, then stretching the points outward, yielding crisp outer edges
     and scaling the shape proportions consistently.
 -->
-<grid:anchor id="topLeftAnchor"     x="1" y="1" adjust="floor()" />
-<grid:anchor id="bottomRightAnchor" x="39" y="39" adjust="ceil()" />
+<grid:anchor id="topLeftAnchor"     x="1" y="1" grid:adjust="floor()" />
+<grid:anchor id="bottomRightAnchor" x="39" y="39" grid:adjust="ceil()" />
 <polygon
     fill="red"
     stroke="none"
