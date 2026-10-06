@@ -93,10 +93,6 @@ Gridfitting prototype - add extended SVG attributes for gridfitting
         Conditional visibility based on device pixels per canvas unit (PPU)
         If the condition is false, all children are hidden too (more like display:none than visibility:hidden).
         If applied to an anchor, that anchor is not considered part of the rendering tree, and any children depending on it behave like a nop.
-        Possible differences:
-            Omit details like drop shadow
-            Perspective orientation when the icon is large, but flat when tiny (e.g. Windows 7 Notepad in Alt+Tab vs top left system icon)
-            Fewer objects, such as a pad with pencil at large sizes but just the pad for smaller sizes.
     Minimum constraints
         Set minimum path width minimum-stroke-width="1px" (e.g. no thinner than 1 pixel)
             or stroke-width-rounding="ceil(bias=0.5 minimum=1)"

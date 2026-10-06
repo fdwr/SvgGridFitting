@@ -109,22 +109,32 @@ Adjustments apply to all points within a shape, and `adjust` can take a *sequenc
     <!-- Round the four points of a rectangle upward (ceil for y) and leftward (floor of x). -->
     <rect x="6" y="6" width="28" height="28" fill="blue" grid:adjust="floor(x) ceil(y)"/>
 
-    <!-- Use a free anchor to round the rectangle's bottom-left to the nearest whole pixel corner
-         while leaving the size alone and right edge potentially fuzzy. -->
+    <!--
+        Use a free anchor to round the rectangle's bottom-left to the nearest whole pixel corner
+        while leaving the size alone and right edge potentially fuzzy.
+    -->
     <grid:anchor id="bottom-left-anchor" x="10" y="38" grid:adjust="round()" />
     <rect x="16" y="16" width="28" height="28" fill="red" grid:adjust="attach(#bottom-left-anchor)" />
 
-    <!-- Use an inner anchor to round the bottom-left corner to the nearest pixel horizontally and down vertically -->
+    <!--
+        Use an inner anchor to round the bottom-left corner to the nearest pixel horizontally and
+        down vertically
+    -->
     <rect x="16" y="16" width="18" height="18" fill="green" grid:adjust="attach(#inner-anchor)">
-        <grid:anchor id="inner-anchor" x="left" y="bottom" grid:adjust="nearest(axis=x) ceil(axis=y)"/>
+        <grid:anchor id="inner-anchor" x="left" y="bottom" grid:adjust="nearest(axes=x) ceil(axes=y)"/>
     </rect>
 
-    <!-- Recenter an entire shape using the default fill bounds on either a pixel center or pixel corner depending on the size.
-         This is essentially a microtranslation of the entire path, and it does not deform the shape. -->
+    <!--
+        Recenter an entire shape using the default fill bounds on either a pixel center or pixel
+        corner depending on the size. This is essentially a microtranslation of the entire path,
+        and it does not deform the shape.
+    -->
     <circle cx="30" cy="30" r="10" fill="yellow" grid:adjust="recenterShape()" />
 
-    <!-- Recontour the path so the 2-unit wide stem is properly aligned on either pixel center or pixel corner and
-         thickened to a whole pixel -->
+    <!--
+        Recontour the path so the 2-unit wide stem is properly aligned on either pixel center or
+        pixel corner and thickened to a whole pixel
+    -->
     <path d="M0,16 L12,16 L12,28 Z
              M4,18 L10,23 L10,18 Z" fill="orange" grid:adjust="recontour(2)"/>
 </svg>
@@ -178,7 +188,7 @@ An invisible point to help anchor other shapes' points to and construct microtra
 
 - `x`=0 – x coordinate in user coordinates, or the keywords `left`/`right`/`center` to refer to the parent's fill box (parent, since the anchor doesn't have one), when used as a child of a `SVGGeometryElement` (`rect`/`circle`/`path`...) or `g` or `svg` element. Percentages and other units behave similarly to any other shape coordinate.
 - `y`=0 – y coordinate in user coordinates, or the keywords `top`/`bottom`/`center` to refer to the parent's fill box.
-- `adjust` – series of microadjustments. See attribute description.
+- `adjust` – series of microadjustments. See `grid:attribute` description for details.
 
 ```xml
 <!-- Round the anchor to the nearest pixel corner -->
@@ -190,9 +200,12 @@ An invisible point to help anchor other shapes' points to and construct microtra
 <!-- Ensure separation of at least 1 pixel of this anchor from another anchor -->
 <grid:anchor id="wheelsTop" x="80" y="80" adjust="separate(#cartBottom 1)" />
 
-<!-- Round the left anchor leftward and the right anchor rightward, interpolating the middle anchor by their displacements -->
-<grid:anchor id="leftAnchor"  x="100" y="150" adjust="floor()" />
-<grid:anchor id="rightAnchor" x="140" y="150" adjust="ceil()" />
+<!--
+    Round the left anchor leftward and the right anchor rightward, interpolating the middle anchor by
+    their displacements
+-->
+<grid:anchor id="leftAnchor"   x="100" y="150" adjust="floor()" />
+<grid:anchor id="rightAnchor"  x="140" y="150" adjust="ceil()" />
 <grid:anchor id="middleAnchor" x="120" y="150" adjust="stretch(#anchor1 #anchor2)" />
 ```
 
@@ -200,21 +213,42 @@ An invisible point to help anchor other shapes' points to and construct microtra
 
 ### `<grid:adjustment/>`
 
-A reusable series of adjustments in the `<defs>` section, including rounding, anchor transforms (nudges), recontouring, and separation contraints, with each adjustment executed in order. e.g. `<adjustment id="myAdjustment" adjust="round(x) floor(y)" />` and `<polygon adjust="#myAdjustment" points="..."/>`. Multiple adjustments can be separated by semicolons to form a list of adjustments, useful for `<path>` where each group of adjustments is referenced by index 0 to N-1.
+A reusable series of adjustments in the `<defs>` section, including rounding, anchor transforms (nudges), recontouring, and separation contraints, with each adjustment executed in order. Multiple adjustments can be separated by semicolons to form a list of adjustments, useful for `<path>` where each group of adjustments is referenced by index 0 to N-1.
+
+```xml
+<defs>
+    <adjustment id="myAdjustment" adjust="round(axes=x) floor(axes=y)" />
+    <adjustment id="myAdjustmentList" adjust="floor(); ceil(); recontour(2)"/>
+    <adjustment id="concatenatedAdjustmentList" adjust="#myAdjustment; #myAdjustmentList"/>
+</defs>
+
+<polygon adjust="#myAdjustment" points="..." />
+<path adjust="roundStrokeWidth()" adjustments="#myAdjustmentList" d="..."/>
+```
 
 - `id` – name of the adjustment to reuse in an `adjust` attribute later.
-- `adjust` – the adjustments list definition. This `adjust` attribute can refer to other adjustments (e.g. `adjust="alignShape(...) #someOtherAdjustment"`), but circular references are not allowed (further recursion stops) and implementations should limit expansion to prevent malicious memory allocation failures (e.g. restrict concatenated strings to 1KB-4KB's).
+- `adjust` – the adjustments list definition. This `adjust` attribute can refer to other adjustments (e.g. `adjust="alignShape(...) #someOtherAdjustment"`), but circular references are not allowed (further recursion stops) and implementations should limit expansion to prevent malicious memory allocation failures (e.g. restrict concatenated strings to 1KB).
 
 **TODO**: Are semicolons appropriate separators? They have precedent in `svg.elements.animate.keyTimes` (e.g. `keyTimes="0; 0.25; 0.5; 0.75; 1"`) https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/keyTimes, and semicolons are also oddly used to separate attributes inside attributes (e.g. `svgView(viewBox(0,0,200,200);preserveAspectRatio(none))`) https://svgwg.org/svg-next/linking.html#SVGFragmentIdentifiersDefinitions.
 
 ### `<grid:transformation/>`
 
-A reuseable transformation list in the `<defs>` section (essentially `SVGTransformList`), including the standard `scale`, `translate`, `rotate`, and `shear` operations, plus the new `origin` which is equivalent to `transform-origin` folded directly into the `transform`. Defined transforms may be used in any `transform` attribute, including those on normal geometry along with those in rounding and constraints. The `matrix` function now takes an abbreviated form with just the first two elements, useful for expressing a uniform scale+rotation using a single 2D vector, where  `matrix(scaleX shearXToY)` expands `matrix(scaleX shearXToY -shearXToY scaleX 0 0)` (e.g. rotating by 30 degrees yields [0.866025404 0.5] and expands to [0.866025404 0.5 -0.5 0.866025404 0 0]). e.g. `<transformation id="myTransform" transform="scale(2) translate(100 300)" />` and `<g transform="#myTransform"> ...` or `<transformation id="turn45" transform="matrix(1 1)" />` and `<line adjust="grid(#turn45) round(xy)" x1="10" y1="10" x2="40" y2="40">`. Using noun form `transformation` rather than verb `transform` to avoid confusion with "transform", in that it's not an action applied to the scene, but rather a reusable component useable later by a "transform" statement.
+A reuseable transformation list in the `<defs>` section (essentially `SVGTransformList`), including the standard `scale`, `translate`, `rotate`, and `shear` operations, plus the new `origin` which is equivalent to `transform-origin` folded directly into the `transform`. Defined transforms may be used in any `transform` attribute, including those on normal geometry along with those in rounding and constraints. The `matrix` function now takes an abbreviated form with just the first two elements, useful for expressing a uniform scale+rotation using a single 2D vector, where  `matrix(scaleX shearXToY)` expands `matrix(scaleX shearXToY -shearXToY scaleX 0 0)` (e.g. rotating by 30 degrees yields [0.866025404 0.5] and expands to [0.866025404 0.5 -0.5 0.866025404 0 0]). **NAMING**: I'm using the noun form `transformation` rather than verb `transform` to avoid confusion with "transform", since it's not an action applied to the scene, but rather a reusable component useable later by a "transform" statement.
 
 - `id` – name of the transformation to use later in a `transform` or `adjust` attribute.
 - `transform` – the transformation list.
 
-**TODO**: Is `origin()` that useful? Should I delete it?
+```xml
+<defs>
+    <transformation id="myTransform" transform="scale(2) translate(100 300)" />
+    <transformation id="turn45Sqrt2" transform="matrix(1 1)" />
+</defs>
+
+<g transform="#myTransform">...</g>
+<line adjust="grid(#turn45Sqrt2) round()" x1="10" y1="10" x2="40" y2="40">
+```
+
+**TODO**: Is `origin()` that useful? Should I delete it? Why did I originally add it 4 years ago? Hmm...
 
 ## Attributes
 
@@ -232,12 +266,14 @@ Applies a series of microadjustments to the coordinates of a shape or the entire
 
 ### `grid:adjustments="...; ..."`
 
-A list of semicolon-separated adjustments for `<path>` (no other element supports it). Note that path's `adjust` is executed first, shared by all path components. **TODO**: Does this make sense? Should `adjustments` be folded into `adjust`? Are there case you want to shared adjustments to all points in the path, that couldn't be achieved by applying it to a containing `<g>`?
+A list of semicolon-separated adjustments for `<path>` (no other element supports it). Note that path's `adjust` is executed first, shared by all path components. **TODO**: Does this make sense? Should `adjustments` be folded into `adjust`? Otherwise it's weird that `<adjustment>` defines both with `adjust`, and yet it matters for path (granted, the distinction is understandable if you want to execute some adjustments for the whole path first, a sort of `preadjust`). Are there case you want to shared adjustments to all points in the path, that couldn't be achieved by applying it to a containing `<g>`?
 
 ```xml
 <!-- List 3 adjustments for various parts of the path "d"ata. -->
-<path ... adjustments="floor(); ceil(); recontour(2)"/>
+<path d="..." adjustments="floor(); ceil(); recontour(2)"/>
 ```
+
+**NOTE**: Passing a semicolon-separated adjustment list to an `adjust` attribute expecting just a single adjustment sequence isn't treated as an error, but it will only execute the first one (before the semicolon).
 
 ### `grid:d`
 
@@ -257,7 +293,9 @@ An extended `<path>` data string like the normal path `d` attribute that also su
 
 ### `grid:requiredPpu` / `grid:requiredPpv`
 
-Conditionally selects the first shape inside a `<switch>` that matches the required pixels-per-view or pixels-per-unit range. Anything in the [`switch`](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/switch) outside that inclusive range is hidden, just like with `requiredExtensions` and `systemLanguage`. Using pixels-per-view is natural for iconography when thinking in terms of the entire SVG canvas (e.g. 20x20, 32x32...). Using pixel-per-unit is less intuitive, but it's more robust if you change the canvas size later (which would mess up any switch ranges since the entire canvas size is now different), if you copy and paste a shape from one SVG to another that might have a different size, or if you change a shape's transform (which would invalidate assumptions about the whole). If only the first component is given, it's treated as a minimum lower bound.
+Conditionally selects the first shape inside a `<switch>` that matches the required pixels-per-view or pixels-per-unit range, useful for hiding details that would otherwise disappear and just add noise when at small resolutions, like omitting drop shadow, switching a perspective orientation to a flat one (e.g. Windows 7 Notepad in Alt+Tab vs top left system icon), or reducing the number of objects (like a pad with a pencial at large sizes but just the pad at smaller sizes).
+
+Anything in the [`switch`](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/switch) outside that inclusive range is hidden, just like with `requiredExtensions` and `systemLanguage`. Using pixels-per-view is natural for iconography when thinking in terms of the entire SVG canvas (e.g. 20x20, 32x32...). Using pixel-per-unit is less intuitive, but it's more robust if you change the canvas size later (which would mess up any switch ranges since the entire canvas size is now different), if you copy and paste a shape from one SVG to another that might have a different size, or if you change a shape's transform (which would invalidate assumptions about the whole). If only the first component is given, it's treated as a minimum lower bound.
 **TODO**: Use icon pixel size of SVG viewport instead? It might be more intuitive, but it might be less useful if you copy a component between icons of different canvas sizes. Support both?
 **NAMING**: pixelsPerUnit and pixelsPerView rather than ppuRange and ppvRange?
 
@@ -289,7 +327,7 @@ These occur inside an `adjust` attribute:
     - `floor`
     - `ceil`
     - `nearest`
-- `roundVertex`?
+- `roundVertices`?
 - `recenter`
 - `roundStrokeWidth`
 - `roundStroke`
@@ -322,10 +360,8 @@ round value/coordinate to nearest whole integer or multiple of `spacing`, defaul
 - `transformReinterprets`=false – mirrored or rotated transformations reinterpret the rounding mode (e.g. horizontally mirroring flips ceil to floor, and rotation swaps x and y).
 - `directionInverts`=false – a negative edge direction (e.g. a line pointing downward or leftward) inverts the rounding mode, useful for "inward" and "outward" rounding. e.g. For a rectangle with 4 corner points and `ceil` rounding mode, the bottom right corner
 - `windingInverts`=false – whether winding direction inverts the interpretation of rounding directions (floor <-> ceil).
-- `axes`=xy – restrain displacement to specific axes `x`,`y`,`xy`. TODO: This might be redundant with `reorient` (where a `[0 0 0 1]` matrix would constrain movement to y-only), but then this is much more concise, semantically clearer, and less error prone. So probably worth keeping.
-- ?`fraction`=1 – a fraction to multiply the displacement by, rather than a full 100%. TODO: This seems completely redundant now with reorient, where you could just say `reorient=0.5`.
-
-**TOOD**: There are many common cases for rounding that could be expressed as a single keyword, like: upward, downward, leftward, rightward (achieved via floor/ceil and rounding only one axis), or inward, outward (achieved via floor/ceil and flipping based on a point's edge directions). Should these be added as keywords, should I include some common definitions here for the `<defs>` section to define?
+- `axes`=xy – restrain displacement to specific axes `x`,`y`,`xy`. **TODO**: This might be redundant with `reorient` (where a `[0 0 0 1]` matrix would constrain movement to y-only), but then this is much more concise, semantically clearer, and less error prone. So probably worth keeping.
+- ?`fraction`=1 – a fraction to multiply the displacement by, rather than a full 100%. **TODO**: This seems completely redundant now with reorient, where you could just say `reorient=0.5`.
 
 ```xml
 <!-- Round all the 4 points (corners) of the rectangle -->
@@ -347,42 +383,99 @@ round value/coordinate to nearest whole integer or multiple of `spacing`, defaul
 <rect ... adjust="round(axes=x reorient=[1 1])"/>
 ```
 
+**TOOD**: There are many common cases for rounding that could be expressed as a single keyword, like: upward, downward, leftward, rightward (achieved via floor/ceil and rounding only one axis), or inward, outward (achieved via floor/ceil and flipping based on a point's edge directions). Should these be added as keywords, should I include some common definitions here for the `<defs>` section to define?
+
 ### `floor(... mode=floor ...)`
 
 Round value/coordinate toward negative infinity (convenience function).
 
 - Inherit all parameters from `round`.
+
+```xml
+<grid:anchor id="someAnchor" x="42" y="7" grid:adjust="floor()"/>
+```
+
 ### `ceil(... mode=ceil ...)`
 
 Round value/coordinate toward positive infinity (convenience function).
 
 - Inherit all parameters from `round`.
 
+```xml
+<grid:anchor id="someAnchor" x="42" y="7" grid:adjust="ceil()"/>
+```
+
 ### `nearest(... mode=nearestLow ...)`
 
 Round value/coordinate toward nearest integer, with halves rounded toward negative infinity (convenience function).
 
+```xml
+<grid:anchor id="someAnchor" x="42" y="7" grid:adjust="nearest()"/>
+```
+
 - Inherit all parameters from `round`.
 
-### `roundVertex()` ?
+### `roundVertices()` ?
 
 Maybe pull the more advanced aspects out of `round` related to normals and edges, so that rounding can be pure (then applicable to 1D scalars and sensible outside shapes too).
 
 ### `recenter(size, sizeRoundingMode)`
 
-Round to either pixel centers or pixel corners depending on whether the input size is odd or even (after scaled to screen space and rounded).
+Round to either pixel centers or pixel corners depending on whether the input size is odd or even (after scaled to screen space and rounded). This lower level function is sometimes useful, but most use cases can generally favor `alignShape()` or `roundStrokeWidth()`+`roundStroke()` or `recontour`.
 
-- `size` – an input size in user coordinates (typically the size of a shape or stem thickness) to transform to screen space, round to an integer, and evaluate the parity to determine the position rounding bias of 0 for even sizes or 0.5 for odd sizes.
-- `sizeRoundingMode`=nearestLow – rounding mode for the input size.
+- `size` – an input size in user coordinates (typically the size of a shape or stem thickness) to transform to screen space, round to an integer, and evaluate the parity to determine the position rounding bias of 0 for even sizes or 0.5 for odd sizes. If a single scalar size is given, it's treated as `[width=size height=size]`.
+- `sizeRoundingMode`=nearestLow – rounding mode for the input size.  Note it's only relevant for `positionRounding=center*`.
 - `sizeBias` – a bias to add to the screen-space size before rounding, which can be used to change the rounding threshold or invert even/odd parity.
-- `positionRoundingMode`=nearestLow – rounding mode for the position. TODO: Maybe unnecessary, since you'd always want recent to, well, center it - just putting here now for completeness.
-- `positionBias`=0 – extra rounding bias for the position. TODO: Maybe unnecessary since determined by the scaled size's parity - just putting here now for completeness.
-- **NAMING**: `recenter` would be good, given recentering a shape is exactly the intended use case for this operation (describes higher-level intent more than the low-level operation).
-- **TODO**: Centering whole shapes is typically more useful than centering individual points within a path (that's also useful, but it's best combined with recontouring anyway to adjust the stem thicknesses). So an explicit `recenterShape` would be useful that centers the midpoint of the shape fillbox and translates the whole shape. For distinction, maybe renamed `recenter` to `recenterPoints` when adjusting individual points.
+- `positionRoundingMode`=nearestLow – rounding mode for the position. **TODO**: Maybe unnecessary, since you'd always want recenter to, well, center it - just putting here now for completeness. Maybe you want nearestHigh.
+- `positionBias`=0 – extra rounding bias for the position. **TODO**: Maybe unnecessary since determined by the scaled size's parity - just putting here now for completeness.
 
-### `roundStrokeWidth()`
+```xml
+<!--
+    Recenter each point in the path based on the given stroke thickness.
+    Note roundStrokeWidth() then roundStroke() are probably more robust/flexible since recenter()
+    doesn't round the stroke width (only repositions), and the stroke width value needs to be
+    repeated as a parameter. Alternately recontour() may be better if you need to consider angle
+    or arc preservation or winding direction.
+-->
+<path fill="none" stroke-width="2" stroke="blue" adjust="recenter(2)" d="..." />
 
-Round the current stroke width in screen-space to whole pixels (or the given spacing).
+<!--
+    Recenter the free anchor to the given size and attach to both grouped circles.
+    Alternately you could use just alignShape() here on the "g" instead,
+    or you could repeat recenter(40) on both of the circles independently, since they
+    would yield the same displacement, but it's conceptually cleaner to move both together.
+    Though, using recenter(20) on the white circle would be wrong, as its diameter could
+    given inconsistent displacement from the containing red circle.
+-->
+<anchor id="circleCenter" x="50" y="50" adjust="recenter(40)"/>
+<g adjust="attach(#circleCenter)">
+    <circle cx="50" cy="50" r="20" fill="red" />
+    <circle cx="50" cy="50" r="10" fill="white" />
+</g>
+
+<!-- Recenter the rectangle and ellipse. Here again alignShape() is recommended instead. -->
+<rect x="50" y="50" width="40" height="20" adjust="recenter([40 20] sizeRounding=ceil)"/>
+<ellipse cx="100" cy="100" rx="20" ry="30" adjust="recenter([60 40] ceil)"/>
+
+<!--
+    Here's a case where recenter() is uniquely useful, since alignshape() would use the fill bounds
+    of the entire shape which is asymmetric here, thus getting the wrong placement.
+-->
+<g adjust="attach(#circleCenter)">
+    <anchor id="circleCenter" x="50" y="50" adjust="recenter(40)"/>
+    <circle cx="50" cy="50" r="20" fill="red" />
+    <circle cx="60" cy="50" r="15" fill="white" />
+</g>
+```
+
+**NAMING**:
+- `recenter` seems good, given recentering a shape is exactly the intended use case for this operation (describes higher-level intent more than the low-level operation). Previously I called it `roundParity`, which made sense logically (you're checking whether something is even or odd and rounding with a bias accordingly), but it didn't semantically capture the *intent*, which is to *center* things.
+**TODO**:
+- Centering *whole* shapes is typically more useful than centering individual points within a path (that's also useful, but it's best combined with recontouring anyway to adjust the stem thicknesses). So an explicit `recenterShape` would be useful that centers the midpoint of the shape fillbox and translates the whole shape. For distinction, maybe renamed `recenter` to `recenterPoints` when adjusting individual points.
+
+### `roundStrokeWidth(bias spacing)`
+
+Round the current stroke width in screen-space to whole pixels, centering it by default.
 
 - `bias`=0 – the value that determines the rounding origin, typically useful for rounding to whole pixels (N.0) vs pixel-and-a-half sizes (N.5). The bias is subtracted from the coordinate before rounding and then added back. e.g. floor(5.2 - 0) + 0 = 5.0, but floor(5.2 - 0.5) + 0.5 = 4.5. The expected is 0 through 0.9999, but it could be larger if the spacing is larger, like 1. 
 - `spacing`=1 – how far apart the rounding is. e.g. 2 is every 2 pixels. 0.5 is every half pixel. The coordinate is divided by the spacing before rounding and then rescaled. e.g. floor(5.2 / 2) * 2 = 4, and floor(7.8 / 2) * 2 = 6, and spacing=2 with bias=1 yielding floor((7.2 - 1.0) / 2.0) * 2.0 +  1.0 = 7.0.
@@ -391,6 +484,16 @@ Round the current stroke width in screen-space to whole pixels (or the given spa
 - `postbias`=bias – value added to the coordinate after rounding.
 - `minimum`=1 – minimum pixel width for the stroke. If the stroke width is 0 (a legal value which essentially means no stroke), this is ignored. **TODO**: For zero stroke width, it makes no sense for this minimum to be enforced, but should the equation be `iif(originalStrokeWidth > 0, min(roundedStroke, minimumValue), 0)` or something more complex?
 - **NOTES**: The `roundStrokeWidth` call should come before any functions that use the stroke width in their computations. There should only be one `roundStrokeWidth` in an adjustment, since implementations do not support differing stroke widths within a single geometric shape. `roundStrokeWidth` has no meaningful effect inside an `<anchor>`. The last one present wins.
+
+```xml
+<circle cx="50" cy="50" r="20" fill="none" stroke-width="3" stroke="blue" adjust="roundStrokeWidth()"/>
+
+<!-- Round the screen-space stroke to odd sizes only, 1,3,5... -->
+<circle cx="50" cy="50" r="20" fill="none" stroke-width="3" stroke="blue" adjust="roundStrokeWidth(0.5 2)"/>
+```
+
+**NOTES**:
+- It's generally desireable to call `roundStrokeWidth` and `roundStroke` in sequence, but I could see cases where you only want to round the position of the stroke (leaving the width as-is) and maybe cases where you want to round the stroke width and leave the position unchanged (though the latter is less likely).
 
 ### `roundStroke()`
 
@@ -402,6 +505,10 @@ Round coordinate based on the current stroke-width so that even thicknesses are 
 - `directionInverts` – invert the rounding mode if the edge flows negative. **TODO**: Does this need to be an x,y pair, like `directionInverts=[false true]` if you want asymmetric behavior across axes?
 - **TODO**: Do I need to consider winding direction at all here? Is `directionInverts` sufficient?
 
+```xml
+<circle cx="50" cy="50" r="20" stroke-width="3" adjust="roundStrokeWidth() roundStroke()"/>
+```
+
 ### `nudge(#anchor)`
 
 Displace coordinates with a small translation from an anchor's rounding displacement.
@@ -412,20 +519,52 @@ Displace coordinates with a small translation from an anchor's rounding displace
 - **NAMING**: Call it `attach` instead? That makes the dependency relationship kinda clear.
 - **TODO**: Maybe support a sort of "multinudge" to average an anchor between two others? You could achieve this with two fractional nudges `nudge(x #anchor1 0.5) nudge(x #anchor2 0.5)` but `nudgeAverage(x #anchor1 #anchor2)` would be more concise. Maybe `nudge` is variadic rather than taking more positional parameters `nudge(x #anchor1 #anchor2)` or it takes a list `nudge(x [#anchor1 #anchor2])`. Using another operator like `stretch` may be better.
 
-### `alignShape()`
+### `alignShape(bounds positionRounding)`
 
 Align an entire shape, rounding the given local anchor. e.g. `alignShape()` to center it. `alignShape(fillBounds floor anchor=[left top])` to floor the top/left. `alignShape(strokeBounds [ceil floor] anchor=#someAnchor)` to align the shape to the given anchor and move rightward and upward.
 
-- `bounds`=fillBounds – either an explicit size `[24,16]` or keywords `fill`, `stroke`, `marker`, `clip` like [`SVGGraphicsElement: getBBox`](https://developer.mozilla.org/en-US/docs/Web/API/SVGGraphicsElement/getBBox). The screenspace bounding box is that of the current shape when used on a shape, the union of the contained shapes when used on a group, or the parent shape's bounding box when used on an anchor (because the bounding box of an anchor would be useless emptiness). One usage for explicit sizes is when the shape has decorative asymmetry (like say a feather sticking out of a hat) that would mess up the alignment otherwise. **TODO**: Should such cases be handled purely by anchors? This operator may still be more concise, but inline sizes are not as easy to visualize in an editor (would need a special case), and they can easily get out of sync with the graphic shape during editing. **NAMING**: I'll go with the leaner `fill` rather than add `box` like {fill-box, stroke-box} like [`transform-box`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/transform-box).
+- `bounds`=fill – either an explicit size `[24,16]` or keywords `fill`, `stroke`, `marker`, `clip` like [`SVGGraphicsElement: getBBox`](https://developer.mozilla.org/en-US/docs/Web/API/SVGGraphicsElement/getBBox). The screenspace bounding box is that of the current shape when used on a shape, the union of the contained shapes when used on a group, or the parent shape's bounding box when used on an anchor (because the bounding box of an anchor would be useless emptiness). One usage for explicit sizes is when the shape has decorative asymmetry (like say a feather sticking out of a hat) that would mess up the alignment otherwise. **TODO**: Should such cases be handled purely by anchors? This operator may still be more concise, but inline sizes are not as easy to visualize in an editor (would need a special case), and they can easily get out of sync with the graphic shape during editing. **NAMING**: I'll go with the leaner `fill` rather than add `box` like {fill-box, stroke-box} like [`transform-box`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/transform-box).
 - `positionRounding`=center – rounding mode: floor, ceil, nearestLow, nearestHigh, nearest=nearestLow, centerLow, centerHigh, center=centerLow.
 - `anchor`=[center center] – the name of an anchor for the alignment point, or the keywords `[left/center/right top/center/bottom]`. **TODO**: Supporting named anchors seems redundant given that if you're already declaring an anchor, then you could just round it instead `<anchor x="42" y="36" adjust="ceil(x) floor(y)"/>` and `adjust="attach(#someAnchor)"`? Though it's still a bit shorter, especially for the 9 common points where you don't even need to declare an anchor. Maybe I should rename it to something besides anchor, like alignment?
+- `sizeRounding`=nearestLow – rounding mode for the size to determine even/odd rounding: floor, ceil, nearestLow, nearestHigh, nearest=nearestLow. Note it's only relevant for `positionRounding=center*`.
+
+```xml
+<!-- Recenter both circles, aligning the (g)roup directly. -->
+<g grid:adjust="alignShape(fill center)">
+    <circle cx="50" cy="50" r="20" fill="red" />
+    <circle cx="50" cy="50" r="10" fill="white" />
+</g>
+
+<!-- Recenter both circles using an inner anchor. -->
+<g grid:adjust="attach(#circleCenter)">
+    <anchor id="circleCenter" x="center" y="center" grid:adjust="alignShape(fill center)"/>
+    <circle cx="50" cy="50" r="20" fill="red" />
+    <circle cx="50" cy="50" r="10" fill="white" />
+</g>
+
+<!-- Recenter the rectangle horizontally, and move it upward. -->
+<rect x="50" y="50" width="40" height="20" fill="red" grid:adjust="alignShape(fill [recenter, floor] [center, left])"/>
+
+<!-- Align the rectangle's bottom right corner downward and rightward. -->
+<rect x="50" y="50" width="40" height="20" fill="red" grid:adjust="alignShape(fill ceil [bottom, right])"/>
+
+<!-- Recenter the ellipse by its stroke bounds. -->
+<ellipse cx="100" cy="100" rx="20" ry="30" fill="none" stroke="blue" grid:adjust="alignShape(stroke)"/>
+```
+
+**TODO**:
+- Should there be a bounds mode for `default` depending on whether a fill or stroke or clip is applied? That way it naturally follows whatever is set on the shape without needing to explicitly pass the bounds type and ensure it matches?
+- Should I consider the world transform and swap axes if rotated and invert directions if mirrored?
+- The most common cases are centering the midpoint of a shape, moving the top of a shape upward (or left side leftward), and moving the bottom of a shape (or right side rightward). So should there be convenient aliases for each of these, like `recenterShape()`/`alignShapeCentered()`, `alignShapeLeftward()`, `alignShapeDownward()`...? People might then call `alignShapeLeftward() alignShapeDownward()`, which would be less efficient (processing the points twice) and more verbose, but implementations could see that and collapse. Maybe there's a way to pass an enum that encompasses these common cases while still enabling less common cases (like moving the right edge leftward, or flooring the midpoint).
+- Should `alignShape` really default to center, or require an explicit positioning mode? It feels kinda weird for `alignShape()` to favor recentering a shape.
+- Should bias be added, or should we just say that if you want that level of fine grain tweaking to use an anchor instead? This is mainly a convenience function anyway.
 
 ### `recontour(thickness ...)`
 
-Push the contour in or out by the scaled amount, displacing individual points along their normal vectors to expand or contract the contour. The new point is at the intersection of their displaced parallel lines/curves (usually along the angle bisector, not expansion of the less useful form here https://en.wikipedia.org/wiki/Expansion_(geometry) which just inserts new edge segments). Recontouring should occur before edge/vertex rounding, because recontouring *after* rounding would just misalign edges. Depending on the path shape, it may make more sense to recontour half on either side of a stem, or to recounter just one side (such as the inside, leaving the outside alone). For most cases, just `recontour(1)` for a 1-unit-wide line would give great default results.
+Push the contour in or out by the scaled amount, displacing individual points along their normal vectors to expand or contract the contour and potentially both resize the thickness and reposition the stems. The new point is at the intersection of their displaced parallel lines/curves (usually along the angle bisector, not expansion of the less useful form here https://en.wikipedia.org/wiki/Expansion_(geometry) which just inserts new edge segments). Depending on the path shape, it may make more sense to recontour half on either side of a stem, or to recounter just one side (such as the inside, leaving the outside alone). For most cases, just `recontour(1)` for a 1-unit-wide line would give good default results.
 
-- `thickness`=0 – the thickness of the stem or size of the object, which is multiplied times the normal vectors and offset fraction to compute an offset for rounding. It accepts a shape too `[width height]` if asymmetric. **NAMING**: size? offset? normalDistance?
-- `sizeRounding`=nearestLow – rounding mode for the thickness: floor, ceil, nearestLow, nearestHigh, nearest=nearestLow.
+- `thickness`=0 – the thickness of the stem or size of the object (since computing stem widths at runtime would be expensive, and there are ambiguous where it can't be known quite what you want), which is multiplied times the normal vectors and offset fraction to compute an offset for rounding. It accepts a shape too `[width height]` if asymmetric. The thickness must be uniform throughout the shape (unless using separate adjustment lists per part). **NAMING**: size? offset? normalDistance? **TODO**: Should `stroke-width` be a special keyword value? If so, does that mostly obviate roundStroke, or is that still worth having because it's simpler?
+- `sizeRounding`=nearestLow – rounding mode for the thickness: floor, ceil, nearestLow, nearestHigh, nearest=nearestLow. Note it's only relevant for `positionRounding=center*`.
 - `positionRounding`=center – rounding mode for the stem position: floor, ceil, nearestLow, nearestHigh, nearest=nearestLow, centerLow, centerHigh, center=centerLow.
 - `offset`=[center center] – the rounding point for the stem or shape, using normalized values 0-1 or keywords `[left/center/right top/center/bottom]`. e.g. `offset=[left top]` or `offset=[1 0]` for the top-right or `offset=[0.5 0.5]` for the midpoint.
 - `directionInverts`=? – invert the rounding mode if the edge flows negative.
@@ -439,6 +578,15 @@ Push the contour in or out by the scaled amount, displacing individual points al
 - **TODO**: `recontour` can satisfy *some* of the cases of `alignShape`, such as the simple case of a circular path, but recontour can apply locally across an entire path, but it's also limited in that it can't apply a global translation to a group. This should be clarified with examples.
 - **TODO**: This is a *lot* of parameters. Are any deletable/redundant? Maybe having many is okay given good defaults for the common cases and named parameters.
 - **TODO**: Stem inversions could happen if the passed thickness is wider than the actual thickness (e.g. say "H" has wider side stems than the horizontal crossbar, but you pass 2 as the thickness, whereas the crossbar only has 1 unit of thickness). The `minimumSize` won't save you here because that just prevents the equation from moving the stem more than that, *given* a correct thickness to begin with. Can these be detected efficiently? One could try to identify nearest parallel edges to form stems. Tools [like this](https://github.com/simoncozens/Callipers) [#2](https://forum.glyphsapp.com/t/please-test-new-plugin-callipers/3583/39) could be inspiration, but really this would best be analyzed and corrected beforehand. I think this is a case of garbage-in-garbage-out.
+
+```xml
+<!--
+    Recontour the path so the 2-unit wide stem is properly aligned on either pixel center or
+    pixel corner and thickened to a whole pixel.
+-->
+<path d="M0,16 L12,16 L12,28 Z
+            M4,18 L10,23 L10,18 Z" fill="orange" grid:adjust="recontour(2)"/>
+```
 
 ### `grid(xScale=1 yShear=0 xShear=-yShear yScale=xScale xDelta=0 yDelta=0)`
 
@@ -505,10 +653,15 @@ Specify the rounding grid used by any later `round` commands (which defaults to 
 Ensure coordinates are separated by at least the given absolute distance.
 
 - `anchorName` – name of anchor to compute distance from.
-- `distance`=1 – minimum distance to ensure the current point is away from.
-- `axes`=xy – constrain movement to `x`, `y`, or `xy`.
-- **TODO**: Should distance always be absolute magnitude? Should there be a mode that clamps absolute values? Should a signed value mean left vs right side?
-- **NOTES**: this operator is mainly useful with anchors, rather than shape coordinates.
+- `distance`=1 – minimum distance to ensure the current point is away from. **TODO**: Should this support [x y] too? Should this support linear distance too, or only Manhattan distance? **TODO**: Should distance always be absolute magnitude? Should there be a mode that clamps absolute values? Should a signed value mean left vs right side?
+- `axes`=xy – constrain movement to `x`, `y`, or `xy`. **TODO**: Supporting [x y] distance should obviate this parameter, I think.
+
+```xml
+<grid:anchor id="wheelsTop" x="80" y="196" adjust="separate(#cartBottom 1)" />
+```
+
+**NOTES**:
+- This operator is mainly useful with anchors, rather than shape coordinates (rect, circle, path). Are there even any uses for points? The operator should behave well if applied there, but can it behave well? It can certainly behave badly, as blindly applying this would collapse a number of points on top of each other.
 
 ### `stretch()`
 
@@ -518,6 +671,29 @@ Stretch coordinates between two rounded anchors, either linearly or corner-to-co
 - `anchor2` – second anchor to read displacement from.
 - `mode`=linear – values: `corners`, `linear`.
 - `keepAspectRatio` – when stretching, preserve the aspect ratio along the orthogonal axis. **TODO**: This really only makes sense for linear, as corners is asymmetric. Should it apply to corners somehow too? Delete it until use case known?
+
+```xml
+<!--
+    Round the left anchor leftward and the right anchor rightward, interpolating the middle anchor by
+    their displacements
+-->
+<grid:anchor id="leftAnchor"   x="100" y="150" adjust="floor()" />
+<grid:anchor id="rightAnchor"  x="140" y="150" adjust="ceil()" />
+<grid:anchor id="middleAnchor" x="120" y="150" adjust="stretch(#anchor1 #anchor2)" />
+
+<!--
+    Round the two corners outward, then stretching the points outward, yielding crisp outer edges
+    and scaling the shape proportions consistently.
+-->
+<grid:anchor id="topLeftAnchor"     x="1" y="1" adjust="floor()" />
+<grid:anchor id="bottomRightAnchor" x="39" y="39" adjust="ceil()" />
+<polygon
+    fill="red"
+    stroke="none"
+    points="12,1 28,1 39,12 39,28 28,39 12,39 1,28, 1,12"
+    grid:adjust="stretch(#topLeft #bottomRight mode=corners)"
+/>
+```
 
 # Considerations
 
