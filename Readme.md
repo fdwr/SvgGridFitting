@@ -68,12 +68,15 @@ It should enable:
 - Selective removal of small details at smaller PPU's
 - Ensure minimal gaps between items so they don't abut and appear merged
 
-It doesn't ensure:
+## Nongoals
+
+It doesn't ensure/enable:
 
 - Pixel alignment under arbitrary transforms
 - Identical pixel results under different rasterizers
 - Preserved geometry and aspect ratio after grid fitting
 - Automatic good fitting without author intervention
+- Turing completeness: no loops, intermediate variables, defined function (just `<defs>`)
 
 ## At a glance
 
@@ -171,7 +174,7 @@ More complex path cases may need to apply different adjustments to different *co
 
 ### `<grid:anchor/>`
 
-An invisible point to help align shapes to and construct microtransforms to adjust shapes. Anchor coordinates can be individually rounded and shared by multiple geometries for tiny translations and scaling. Anchors are typically defined soon before the shape that uses their `id` in an adjustment attribute. An unspecified x or y defaults to 0. Anchors do not extend any bounding box retrieved by [`getBBox`](https://developer.mozilla.org/en-US/docs/Web/API/SVGGraphicsElement/getBBox).
+An invisible point to help anchor other shapes' points to and construct microtransforms to adjust them. They have no fill, stroke, or visibility (except in SVG editors). Anchor coordinates can be individually rounded and shared by multiple geometries for tiny translations and scaling. Anchors are typically defined soon before the shape that uses their `id` in an adjustment attribute. An unspecified x or y defaults to 0. Anchors do not extend any bounding box or clipping path retrieved by [`getBBox`](https://developer.mozilla.org/en-US/docs/Web/API/SVGGraphicsElement/getBBox), [`getBoundingClientRect`](https://developer.mozilla.org/en-US/docs/Web/API/Element/getBoundingClientRect), or [`getClientRects`](https://developer.mozilla.org/en-US/docs/Web/API/Element/getClientRects). Anchors need not be on or even near any contour. Indeed, for rounded rectangles, the off-contour 4-corner points beyond the curve are desired. Anchor adjustments can apply to multiple objects, including ones that are far away. For example a keyboard full of keys might have only one anchor to snap a keycap to whole pixels, but then every other keycap could reuse that same anchor's displacement. Pointer or keyboard events do not apply.
 
 - `x`=0 – x coordinate in user coordinates, or the keywords `left`/`right`/`center` to refer to the parent's fill box (parent, since the anchor doesn't have one), when used as a child of a `SVGGeometryElement` (`rect`/`circle`/`path`...) or `g` or `svg` element. Percentages and other units behave similarly to any other shape coordinate.
 - `y`=0 – y coordinate in user coordinates, or the keywords `top`/`bottom`/`center` to refer to the parent's fill box.
@@ -193,6 +196,8 @@ An invisible point to help align shapes to and construct microtransforms to adju
 <grid:anchor id="middleAnchor" x="120" y="150" adjust="stretch(#anchor1 #anchor2)" />
 ```
 
+**TODO**: If they do not affect the bounding boxes, what about querying the anchor object itself directly? Should that return an empty but placed box?
+
 ### `<grid:adjustment/>`
 
 A reusable series of adjustments in the `<defs>` section, including rounding, anchor transforms (nudges), recontouring, and separation contraints, with each adjustment executed in order. e.g. `<adjustment id="myAdjustment" adjust="round(x) floor(y)" />` and `<polygon adjust="#myAdjustment" points="..."/>`. Multiple adjustments can be separated by semicolons to form a list of adjustments, useful for `<path>` where each group of adjustments is referenced by index 0 to N-1.
@@ -200,13 +205,16 @@ A reusable series of adjustments in the `<defs>` section, including rounding, an
 - `id` – name of the adjustment to reuse in an `adjust` attribute later.
 - `adjust` – the adjustments list definition. This `adjust` attribute can refer to other adjustments (e.g. `adjust="alignShape(...) #someOtherAdjustment"`), but circular references are not allowed (further recursion stops) and implementations should limit expansion to prevent malicious memory allocation failures (e.g. restrict concatenated strings to 1KB-4KB's).
 
+**TODO**: Are semicolons appropriate separators? They have precedent in `svg.elements.animate.keyTimes` (e.g. `keyTimes="0; 0.25; 0.5; 0.75; 1"`) https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/keyTimes, and semicolons are also oddly used to separate attributes inside attributes (e.g. `svgView(viewBox(0,0,200,200);preserveAspectRatio(none))`) https://svgwg.org/svg-next/linking.html#SVGFragmentIdentifiersDefinitions.
+
 ### `<grid:transformation/>`
 
 A reuseable transformation list in the `<defs>` section (essentially `SVGTransformList`), including the standard `scale`, `translate`, `rotate`, and `shear` operations, plus the new `origin` which is equivalent to `transform-origin` folded directly into the `transform`. Defined transforms may be used in any `transform` attribute, including those on normal geometry along with those in rounding and constraints. The `matrix` function now takes an abbreviated form with just the first two elements, useful for expressing a uniform scale+rotation using a single 2D vector, where  `matrix(scaleX shearXToY)` expands `matrix(scaleX shearXToY -shearXToY scaleX 0 0)` (e.g. rotating by 30 degrees yields [0.866025404 0.5] and expands to [0.866025404 0.5 -0.5 0.866025404 0 0]). e.g. `<transformation id="myTransform" transform="scale(2) translate(100 300)" />` and `<g transform="#myTransform"> ...` or `<transformation id="turn45" transform="matrix(1 1)" />` and `<line adjust="grid(#turn45) round(xy)" x1="10" y1="10" x2="40" y2="40">`. Using noun form `transformation` rather than verb `transform` to avoid confusion with "transform", in that it's not an action applied to the scene, but rather a reusable component useable later by a "transform" statement.
 
 - `id` – name of the transformation to use later in a `transform` or `adjust` attribute.
 - `transform` – the transformation list.
-**TODO**: Is `origin` that useful? Should I delete it?
+
+**TODO**: Is `origin()` that useful? Should I delete it?
 
 ## Attributes
 
@@ -292,7 +300,7 @@ These occur inside an `adjust` attribute:
 - `separate`
 - `stretch`
 
-Each operator accepts a variable number of parameters like with `transform`, but unlike `transform`, they are heterogeneous (not just a list of scalars) and support named parameters. e.g. (`recenter(2 ceil)` and `nudge(#someAnchor reorient=[1 1])`) since it can get unwieldly otherwise. Not all operators fully make sense in all contexts, like `roundStrokeWidth` or `recontour` inside an anchor's `adjust` property (since it's a single point with no strokeable content), but such cases are not degenerate errors, treating either with reasonal defaults (`recontour` would center the anchor point given it's default position rounding) or as a nop (`roundStrokeWidth` is ignorable).
+Each operator accepts a variable number of parameters like `transform`, but unlike `transform`, they are heterogeneous (not just a list of scalars) and support named parameters. e.g. (`recenter(2 ceil)` and `nudge(#someAnchor reorient=[1 1])`) since it can get unwieldly otherwise. Not all operators fully make sense in all contexts, like `roundStrokeWidth` or `recontour` inside an anchor's `adjust` property (since it's a single point with no strokeable content), but such cases are not degenerate errors, treating either with reasonal defaults (`recontour` would center the anchor point given it's default position rounding) or as a nop (`roundStrokeWidth` is ignorable).
 
 ### `round(bias spacing ...)`
 
@@ -316,6 +324,8 @@ round value/coordinate to nearest whole integer or multiple of `spacing`, defaul
 - `windingInverts`=false – whether winding direction inverts the interpretation of rounding directions (floor <-> ceil).
 - `axes`=xy – restrain displacement to specific axes `x`,`y`,`xy`. TODO: This might be redundant with `reorient` (where a `[0 0 0 1]` matrix would constrain movement to y-only), but then this is much more concise, semantically clearer, and less error prone. So probably worth keeping.
 - ?`fraction`=1 – a fraction to multiply the displacement by, rather than a full 100%. TODO: This seems completely redundant now with reorient, where you could just say `reorient=0.5`.
+
+**TOOD**: There are many common cases for rounding that could be expressed as a single keyword, like: upward, downward, leftward, rightward (achieved via floor/ceil and rounding only one axis), or inward, outward (achieved via floor/ceil and flipping based on a point's edge directions). Should these be added as keywords, should I include some common definitions here for the `<defs>` section to define?
 
 ```xml
 <!-- Round all the 4 points (corners) of the rectangle -->
@@ -372,15 +382,15 @@ Round to either pixel centers or pixel corners depending on whether the input si
 
 ### `roundStrokeWidth()`
 
-Round the current stroke width in screen-space to the given spacing.
+Round the current stroke width in screen-space to whole pixels (or the given spacing).
 
 - `bias`=0 – the value that determines the rounding origin, typically useful for rounding to whole pixels (N.0) vs pixel-and-a-half sizes (N.5). The bias is subtracted from the coordinate before rounding and then added back. e.g. floor(5.2 - 0) + 0 = 5.0, but floor(5.2 - 0.5) + 0.5 = 4.5. The expected is 0 through 0.9999, but it could be larger if the spacing is larger, like 1. 
 - `spacing`=1 – how far apart the rounding is. e.g. 2 is every 2 pixels. 0.5 is every half pixel. The coordinate is divided by the spacing before rounding and then rescaled. e.g. floor(5.2 / 2) * 2 = 4, and floor(7.8 / 2) * 2 = 6, and spacing=2 with bias=1 yielding floor((7.2 - 1.0) / 2.0) * 2.0 +  1.0 = 7.0.
-- `mode`=nearestLow – which rounding mode: floor, ceil, nearestLow, nearestHigh, nearest=nearestLow. There is deliberately no round-halves-to-nearest-even, which would yield a staggered appearance graphically.
+- `mode`=nearestLow – which rounding mode: floor, ceil, nearestLow, nearestHigh, nearest=nearestLow. See `round` for `mode` details.
 - `prebias`=bias – value subtracted from the coordinate before rounding. Prebias could be useful for `roundStrokeWidth` to bump up small sizes.
 - `postbias`=bias – value added to the coordinate after rounding.
-- `minimum`=1 – minimum pixel width for the stroke. **TODO**: If the stroke width is 0 (a legal value which essentially means no stroke), then it doesn't make sense for this minimum to be enforced. Should this be `iif(originalStrokeWidth > 0, min(roundedStroke, minimumValue), 0)` or something more complex?
-- **NOTES**: The `roundStrokeWidth` call should come before any functions that use the stroke width in their computations. There should only be one `roundStrokeWidth` in an adjustment, since implementations do not support differing stroke widths within a single geometric shape. `roundStrokeWidth` has no meaningful effect inside an `<anchor>`.
+- `minimum`=1 – minimum pixel width for the stroke. If the stroke width is 0 (a legal value which essentially means no stroke), this is ignored. **TODO**: For zero stroke width, it makes no sense for this minimum to be enforced, but should the equation be `iif(originalStrokeWidth > 0, min(roundedStroke, minimumValue), 0)` or something more complex?
+- **NOTES**: The `roundStrokeWidth` call should come before any functions that use the stroke width in their computations. There should only be one `roundStrokeWidth` in an adjustment, since implementations do not support differing stroke widths within a single geometric shape. `roundStrokeWidth` has no meaningful effect inside an `<anchor>`. The last one present wins.
 
 ### `roundStroke()`
 
@@ -423,7 +433,7 @@ Push the contour in or out by the scaled amount, displacing individual points al
 - `windingDirection`=right – which winding direction the normals point to. The default is right/clockwise, meaning that (from the perspective of a single vertex in the path in the direction of the next edge) the overall direction turns right, and that the normal points right (that is, a clockwise circle would point inward). If the graphics editor emits outer paths that are counter-clockwise, set this to left. The properties `fill-rule:nonzero` to `fill-rule:evenodd` make no difference.
 - `preserveTangent`=? – try to keep tangent angles consistent. This would be useful on the horizontal stem of the letter "A" so vertical alignment wouldn't thicken or [thinnen](https://quod.lib.umich.edu/m/middle-english-dictionary/dictionary/MED45320) the slanted legs. **TODO**: Should the default be true? Are there any undesireable consequences? How would this interact with the normal vectors?
 - `preserveArcSizes`=true – preserve arc sizes when possible by nudging neighbors. For example, given the top-left of a rounded rectangle, if you nudge the left edge leftward, then the top neighboring vertex needs to be displaced the same amount leftward, stretching the top crossbar but leaving the arc's shape and surface area the same (otherwise the corners could appear dimmer since rx was essentially elongated). **TODO**: Some cases cannot preserving arc sizes, like the bottom of a "U", where nudging the sides could deform the arcs (since there is no horizontal stem at the base to contract/expand). Should the overall circular shape be preserved (by moving the top ends of the arcs up), or should the arcs be squashed horizontally slightly? I'm thinking the latter, squashing if a single arc or averaging the middle vertex at the bottom if two arcs.
-- `resize`=true – whether to resize the contour. `true` rounds the stem thickness and displaces opposing neighbor points nearer/farther. `false` is useful if you just want to reposition but not change the stem thickness.
+- `resize`=true – whether to resize the contour. `true` rounds the stem thickness and, indirectly by virtue of walking around the whole path, displaces opposing neighbor points of the opposite normal nearer/farther too. `false` is useful if you just want to reposition but not change the stem thickness. **TODO**: Is it useful to resize/reposition only one axis? If so, should this be an array `resize=[true false]`, or should there be an `axes` parameter? What if you want to specify resize and reposition separately? With `axes`, would you need to state the `recontour` twice with different `axes`?
 - `reposition`=true – whether to reposition the contour. `true` moves the positions of contours (shifting opposing neighbor points in tandem). `false` is useful if you just want to resize but not change position. Note that both resizing and repositioning do move points in the path, but the difference is whether points move in tandom or closer/farther. More often you want *both* to be true for the crispest geometry. Having both false would be a nop.
 - `minimumSize`=1 – minimum pixel width for the thickness. **TODO**: If the thickness is 0 (a legal value which essentially means no stem width, only outline rounding), then it doesn't make sense for this minimum to be enforced. Should this be `iif(originalStrokeWidth > 0, min(roundedStroke, minimumValue), 0)` or something more complex?
 - **TODO**: `recontour` can satisfy *some* of the cases of `alignShape`, such as the simple case of a circular path, but recontour can apply locally across an entire path, but it's also limited in that it can't apply a global translation to a group. This should be clarified with examples.
