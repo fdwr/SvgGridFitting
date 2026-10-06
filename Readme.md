@@ -39,51 +39,58 @@ SVG is great for resolution independent iconography, but try rendering icons to 
 
 This document extends SVG with microadjustment attributes to snap to pixels and remedy those fuzzy edges/smudgy details when the graphic is rendered at sizes it wasn't an intended multiple of, especially for small size scenarios (e.g. iconography in toolbars, menus, webpage links) on medium-DPI displays (e.g. 24x24px, 32x32px, 48x48px). Although monitor resolutions *have* increased over the decades, notably with phone screens, the PPI for desktop monitors still yields visible artifacts, and the most common monitor resolution in 2026 is only 1920x1080.
 
-## Nonsolutions
+## Nonsolutions already tried
 
 - [shape-rendering](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Attribute/shape-rendering) with `crispEdges` gives you jagged geometry, whereas you still want smoothly rendered circles and lines, just with their bounds aligned to the pixel grid.
 - Designing your SVG files on a grid works well when displayed at *that size*, but designing for multiple target sizes (24x24, 32x32...) becomes cumbersome and completely defeats the benefit of *scalable* vector graphics.
-- TrueType glyphs offer an alternative to SVG with powerful grid fitting capabilities, but it has many caveats: hinting is very challenging to graphic designers given the low-level bytecode instruction set, integration into the workflow is more awkward than just adding some lose SVG files (you need append glyphs to the file, assign a numeric id, and reference that opaque number to draw it), and it only supports monochrome color unless the rasterizer supports the latest COLR table with multiple layers and gradients. Additionally, OpenType supports SVG glyphs (not just TrueType glyphs), but there is no equivalent grid fitting support for SVG outlines.
+- TrueType glyphs offer an alternative to SVG with powerful grid fitting capabilities, but they have many caveats: hinting is very challenging to graphic designers given the low-level bytecode instruction set, integration into the workflow is more awkward than just adding some lose SVG files (you need append glyphs to the file, assign a numeric id, and reference that opaque number to draw it), and it only supports monochrome color unless the rasterizer supports the latest COLR table with multiple layers and gradients. Additionally, OpenType supports SVG glyphs (not just TrueType glyphs), but there is no equivalent grid fitting support for SVG outlines.
 
 ## Design Plan
 
 - ⏳1️⃣ Vet design by implementing it in:
     - ⏳1️⃣ [LunaSVG](https://github.com/sammycage/lunasvg)
-    - ⏳2️⃣ Javascript polyfill library so webpages can dynamically fit an SVG to the current resolution (because I'm probably not going to update Chromium :b).
+    - ⏳2️⃣ Javascript polyfill library so webpages can dynamically fit an SVG to the current resolution (because I'm probably not going to update Chromium and deal with gn and ninja again :b).
     - ⏳3️⃣ [Adobe SVG Native](https://github.com/adobe/svg-native-viewer)
 - ⏳1️⃣ Visualize grid-fitting in [LunaSvgSampleTest](https://github.com/fdwr/LunaSvgSampleTest).
 - ⏳2️⃣ Create a Node CLI app to automatically apply grid-fitting attributes, which won't be perfect but could apply reasonable defaults.
 - ⏳4️⃣ Inkscape support would be nice, to see anchors and edit adjustment properties and see adjustment lists in paths, but so long as priorities 1 and 2 are completed, and so long as Inkscape at least *preserves* the attributes, then I'm happy.
 
-## Goals
+## Requirements
 
 It should enable:
 
-- Crisp horizontal and vertical edges
+- Crisp horizontal and vertical edges, and alignment for diagonal edges
 - Pixel rounded stroke widths
 - Consistent stem thickness of paths
 - Shape symmetry around centers
 - Equal shape spacing and gaps
 - Alignment between separate shapes that are part of a large object
 - Selective removal of small details at smaller PPU's
-- Ensure minimal gaps between items so they don't abut and appear merged
+- Constraints like minimal gaps between items so they don't collapse/abut and appear merged
+- Simple implementations (not a TrueType-level stack-based instruction executor)
+- Simple authoring experience with no programming experience needed
+- Tooling to produce a "not terrible" default fitting, even without author intervention
 
 ## Nongoals
 
-It doesn't ensure/enable:
+It doesn't ensure:
 
 - Pixel alignment under arbitrary transforms
 - Identical pixel results under different rasterizers
 - Preserved geometry and aspect ratio after grid fitting
-- Automatic good fitting without author intervention
-- Turing completeness: no loops, intermediate variables, defined function (just `<defs>`)
 
 ## At a glance
 
-Grid fitting attributes reside in the `grid:` namespace (or maybe `ps:` for pixel snapping, if you like that more). Here's a simple octagon with every path vertex rounded:
+Grid fitting attributes reside in the `grid:` namespace (or maybe `ps:` for pixel snapping, or `gf:` for grid fitting 🤷‍♂️). Here's a simple octagon with every path vertex rounded:
 
 ```xml
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:grid="https://github.com/fdwr/SvgGridFitting" viewBox="0 0 40 40" width="36px" height="36px">
+<svg
+    xmlns="http://www.w3.org/2000/svg"
+    xmlns:grid="https://github.com/fdwr/SvgGridFitting"
+    viewBox="0 0 40 40"
+    width="36px"
+    height="36px"
+    >
     <!-- Simplest case - Round all points in the shape to the nearest pixel corner. -->
     <polygon
       fill="red"
@@ -91,7 +98,7 @@ Grid fitting attributes reside in the `grid:` namespace (or maybe `ps:` for pixe
       points="12,1 28,1 39,12 39,28 28,39 12,39 1,28, 1,12"
       grid:adjust="round()"
     />
-    <!-- Round the path such that the stroke is well aligned (about 2 pixels wide). -->
+    <!-- Round the path such that the stroke is well aligned (about 2.7 pixels wide). -->
     <polygon
       fill="none"
       stroke="white"
@@ -135,8 +142,12 @@ Adjustments apply to all points within a shape, and `adjust` can take a *sequenc
         Recontour the path so the 2-unit wide stem is properly aligned on either pixel center or
         pixel corner and thickened to a whole pixel
     -->
-    <path d="M0,16 L12,16 L12,28 Z
-             M4,18 L10,23 L10,18 Z" fill="orange" grid:adjust="recontour(2)"/>
+    <path
+        d="M0,16 L12,16 L12,28 Z
+           M4,18 L10,23 L10,18 Z"
+        fill="orange"
+        grid:adjust="recontour(2)"
+    />
 </svg>
 ```
 
@@ -596,8 +607,12 @@ Push the contour in or out by the scaled amount, displacing individual points al
     Recontour the path so the 2-unit wide stem is properly aligned on either pixel center or
     pixel corner and thickened to a whole pixel.
 -->
-<path d="M0,16 L12,16 L12,28 Z
-         M4,18 L10,23 L10,18 Z" fill="orange" grid:adjust="recontour(2)"/>
+<path
+    d="M0,16 L12,16 L12,28 Z
+       M4,18 L10,23 L10,18 Z"
+    fill="orange"
+    grid:adjust="recontour(2)"
+/>
 ```
 
 ### `grid(xScale=1 yShear=0 xShear=-yShear yScale=xScale xDelta=0 yDelta=0)`
