@@ -1,7 +1,5 @@
-# 🚧 SVG Pixel Snapping (Grid Fitting) 🚧
+# 🚧 SVG Pixel Snapping (Grid Fitting) 🚧 <br/>*This is preliminary with no working implementation yet*
 Dwayne Robinson 2022-07-28 to 2026-10-07
-
-# 🛑 *This is preliminary with no working implementation yet*
 
 # Why – The Problem
 
@@ -30,7 +28,7 @@ SVG is great for resolution independent iconography, but try rendering icons to 
 
 # What
 
-This document extends SVG with microadjustment attributes to remedy those fuzzy edges/smudgy details when the graphic is rendered at sizes it wasn't an intended for, especially for small size scenarios (e.g. iconography in toolbars, menus, webpage links) on medium-DPI displays (e.g. 24x24px, 32x32px, 48x48px). It proposes operations to round coordinates, align geometry to shared anchors, stretch points, adjust contours/stroke widths, enforce minimum separations, preserve symmetry, and conditionally suppress details at given sizes. These operations are lower level actions than the usual high-level enumerations (e.g. [`alignment-baseline=bottom`](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Attribute/alignment-baseline)) but higher level than say TrueType instructions (e.g. [`SPVTL` Set Projection_Vector To Line](https://learn.microsoft.com/en-us/typography/opentype/spec/tt_instructions#set-projection_vector-to-line)), akin to `transform=` operations.
+This document extends SVG with microadjustment attributes to remedy those fuzzy edges/smudgy details when the graphic is rendered at sizes it wasn't an intended for, especially for small size scenarios (e.g. iconography in toolbars, menus, webpage links) on medium-DPI displays (e.g. 24x24px, 32x32px, 48x48px). It proposes operations to round coordinates, align geometry to shared anchors, adjust contours/stroke widths, preserve symmetry, enforce minimum separations, stretch points, and conditionally suppress details at given sizes. These operations are lower level actions than the usual high-level enumerations (e.g. [`alignment-baseline=bottom`](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Attribute/alignment-baseline)) but higher level than say TrueType instructions (e.g. [`SPVTL` Set Projection_Vector To Line](https://learn.microsoft.com/en-us/typography/opentype/spec/tt_instructions#set-projection_vector-to-line)), akin to SVG [`transform=` operations](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Attribute/transform#transform_functions).
 
 ## Inadequate approaches already tried
 
