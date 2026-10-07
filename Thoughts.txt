@@ -1574,7 +1574,8 @@ Related:
         parse-svg-path - https://www.npmjs.com/package/parse-svg-path
         normalize-svg-path - https://www.npmjs.com/package/normalize-svg-path
     Guidance
-        Interactive Guide to Paths https://www.joshwcomeau.com/svg/interactive-guide-to-paths/
+        Interactive Guide to Paths https://www.joshwcomeau.com/svg/interactive-guide-to-paths/ 2026-10-05
+        A Primer on Bézier Curves https://pomax.github.io/bezierinfo/#circles
         Material Design "Clarity (Pixel perfection)" - https://material.io/design/iconography/system-icons.html#grid-and-keyline-shapes
         Adobe Spectrum Iconography - https://spectrum.adobe.com/page/iconography/#Characteristics
         Adobe Draw pixel-perfect art https://helpx.adobe.com/illustrator/using/pixel-perfect.html
