@@ -5,7 +5,7 @@ Dwayne Robinson 2022-07-28 to 2026-10-07
 
 # Why – The Problem
 
-SVG is great for resolution independent iconography, but try rendering icons to sizes they weren't designed for, and notice...
+SVG is great for resolution independent iconography, but try rendering icons to sizes they weren't designed for, and notice they often look blurry, crowded, structurally even... Although monitor resolutions *have* increased over the decades, notably with phone screens, the PPI for desktop monitors still yields visible artifacts, and the most common monitor resolution in 2026 is only 1920x1080. Other mechanisms like shape-rendering="crispEdges" don't really solve this, and switching to a completely different technology like {TrueType glyph hinting, Lottie JSON, CSS shape/polygon, IconVG, Haiku HVIF, Rive...} brings its own new problems.
 
 <table>
 <tr>
@@ -13,7 +13,7 @@ SVG is great for resolution independent iconography, but try rendering icons to 
 <td>The asymmetric connector thickness:<br/><img src="comparison-icons8-fluency-ungroup-objects.png"/></td>
 </tr>
 <tr>
-<td>Collapsed comb tines shifted display:<br/><img src="comparison-icons8-fluency-afro-pick.png"/></td>
+<td>Collapsed comb tines on shifted origin:<br/><img src="comparison-icons8-fluency-afro-pick.png"/></td>
 <td>Faint gaps between bars in the bar chart:<br/><img src="comparison-icons8-fluency-bar-chart.png"/></td>
 </tr>
 <tr>
@@ -26,29 +26,17 @@ SVG is great for resolution independent iconography, but try rendering icons to 
 </tr>
 </table>
 
-- **TODO**: Insert more images showing problems. Include: blurry lines, excess detail which becomes a blurry mess, detail collapse, minimum pixel distance, contour offset.
-- **TODO**: Add Pencil for 45 degree angle – LunaSvgTestData\icons8.com\icons8-office-edit XS 16x16.svg
-- **TODO**: Dotted gridlines that collapse at 24px – LunaSvgTestData\icons8.com\icons8-fluency-select-all.svg
+- **TODO**: Insert more images showing problems. Include: blurry lines, excess detail which becomes a blurry mess, detail collapse, minimum pixel distance, contour offset. Maybe add: Pencil for 45 degree angle – LunaSvgTestData\icons8.com\icons8-office-edit XS 16x16.svg.
 
 # What
 
-This document extends SVG with microadjustment attributes to snap to pixels and remedy those fuzzy edges/smudgy details when the graphic is rendered at sizes it wasn't an intended multiple of, especially for small size scenarios (e.g. iconography in toolbars, menus, webpage links) on medium-DPI displays (e.g. 24x24px, 32x32px, 48x48px). Although monitor resolutions *have* increased over the decades, notably with phone screens, the PPI for desktop monitors still yields visible artifacts, and the most common monitor resolution in 2026 is only 1920x1080.
+This document extends SVG with microadjustment attributes to remedy those fuzzy edges/smudgy details when the graphic is rendered at sizes it wasn't an intended for, especially for small size scenarios (e.g. iconography in toolbars, menus, webpage links) on medium-DPI displays (e.g. 24x24px, 32x32px, 48x48px). It proposes operations to round coordinates, align geometry to shared anchors, stretch points, adjust contours/stroke widths, enforce minimum separations, preserve symmetry, and conditionally suppress details at given sizes. These operations are lower level actions than the usual high-level enumerations (e.g. [`alignment-baseline=bottom`](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Attribute/alignment-baseline)) but higher level than say TrueType instructions (e.g. [`SPVTL` Set Projection_Vector To Line](https://learn.microsoft.com/en-us/typography/opentype/spec/tt_instructions#set-projection_vector-to-line)), akin to `transform=` operations.
 
-## Nonsolutions already tried
+## Inadequate approaches already tried
 
 - [shape-rendering](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Attribute/shape-rendering) with `crispEdges` gives you jagged geometry, whereas you still want smoothly rendered circles and lines, just with their bounds aligned to the pixel grid.
-- Designing your SVG files on a grid works well when displayed at *that size*, but designing for multiple target sizes (24x24, 32x32...) becomes cumbersome and completely defeats the benefit of *scalable* vector graphics.
-- TrueType glyphs offer an alternative to SVG with powerful grid fitting capabilities, but they have many caveats: hinting is very challenging to graphic designers given the low-level bytecode instruction set, integration into the workflow is more awkward than just adding some lose SVG files (you need append glyphs to the file, assign a numeric id, and reference that opaque number to draw it), and it only supports monochrome color unless the rasterizer supports the latest COLR table with multiple layers and gradients. Additionally, OpenType supports SVG glyphs (not just TrueType glyphs), but there is no equivalent grid fitting support for SVG outlines.
-
-## Design Plan
-
-- ⏳1️⃣ Vet design by implementing it in:
-    - ⏳1️⃣ [LunaSVG](https://github.com/sammycage/lunasvg)
-    - ⏳2️⃣ Javascript polyfill library so webpages can dynamically fit an SVG to the current resolution (because I'm probably not going to update Chromium and deal with gn and ninja again :b).
-    - ⏳3️⃣ [Adobe SVG Native](https://github.com/adobe/svg-native-viewer)
-- ⏳1️⃣ Visualize grid-fitting in [LunaSvgSampleTest](https://github.com/fdwr/LunaSvgSampleTest).
-- ⏳2️⃣ Create a Node CLI app to automatically apply grid-fitting attributes, which won't be perfect but could apply reasonable defaults.
-- ⏳4️⃣ Inkscape support would be nice, to see anchors and edit adjustment properties and see adjustment lists in paths, but so long as priorities 1 and 2 are completed, and so long as Inkscape at least *preserves* the attributes, then I'm happy.
+- Designing your SVG files on a grid (say with Inkscape) works well when displayed at *that size*, but creating different SVG's for multiple target sizes (24x24, 32x32...) becomes cumbersome and completely defeats the benefit of *scalable* vector graphics.
+- TrueType glyphs offer a powerful alternative to SVG, but they have many caveats: hinting is very challenging to graphic designers given the low-level bytecode instruction set, integration into the workflow is more awkward than just adding some lose SVG files (you need append glyphs to the file, assign a numeric id, and reference that opaque number to draw it), and it only supports monochrome color unless the rasterizer supports the latest COLR table with multiple layers and gradients. Additionally, OpenType supports SVG glyphs (not just TrueType glyphs), but there is no equivalent grid fitting support for SVG outlines.
 
 ## Requirements
 
@@ -174,6 +162,16 @@ More complex path cases may need to apply different adjustments to different *co
     />
 </svg>
 ```
+
+# When - Design Plan
+
+- ⏳1️⃣ Vet design by implementing it in:
+    - ⏳1️⃣ [LunaSVG](https://github.com/sammycage/lunasvg)
+    - ⏳2️⃣ Javascript polyfill library so webpages can dynamically fit an SVG to the current resolution (because I'm probably not going to update Chromium and deal with gn and ninja again :b).
+    - ⏳3️⃣ [Adobe SVG Native](https://github.com/adobe/svg-native-viewer)
+- ⏳1️⃣ Visualize grid-fitting in [LunaSvgSampleTest](https://github.com/fdwr/LunaSvgSampleTest).
+- ⏳2️⃣ Create a Node CLI app to automatically apply grid-fitting attributes, which won't be perfect but could apply reasonable defaults.
+- ⏳4️⃣ Inkscape support would be nice, to see anchors and edit adjustment properties and see adjustment lists in paths, but so long as priorities 1 and 2 are completed, and so long as Inkscape at least *preserves* the attributes, then I'm happy.
 
 # How
 
@@ -313,26 +311,31 @@ Conditionally selects the first shape inside a `<switch>` that matches the requi
 Anything in the [`switch`](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/switch) outside that inclusive range is hidden, just like with `requiredExtensions` and `systemLanguage`. Using pixels-per-view is natural for iconography when thinking in terms of the entire SVG canvas (e.g. 20x20, 32x32...). Using pixel-per-unit is less intuitive, but it's more robust if you change the canvas size later (which would mess up any switch ranges since the entire canvas size is now different), if you copy and paste a shape from one SVG to another that might have a different size, or if you change a shape's transform (which would invalidate assumptions about the whole). If only the first component is given, it's treated as a minimum lower bound.
 
 ```xml
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:grid="https://github.com/fdwr/SvgGridFitting" viewBox="0 0 32 32" width="32px" height="32px">
-    <switch>
-        <shapeA grid:requiredPpv="32" /><!-- icon is >=32, with room for detail -->
-        <shapeB grid:requiredPpv="16 32" /><!-- icon is >=16 pixels, less detailed -->
-        <shapeC/><!-- Fine details are too crowded to display, and so use simpler shape -->
-    </switch>
-</svg>
+<switch>
+    <shapeA grid:requiredPpv="32" /><!-- icon is >=32, with room for detail -->
+    <shapeB grid:requiredPpv="16 32" /><!-- icon is >=16 pixels, less detailed -->
+    <shapeC/><!-- Fine details are too crowded to display, and so use simpler shape -->
+</switch>
 ```
 
 ```xml
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:grid="https://github.com/fdwr/SvgGridFitting" viewBox="0 0 32 32" width="32px" height="32px">
-    <switch>
-        <shapeA grid:requiredPpu="1" /><!-- The icon is >= 1:1, meaning at least 1 pixel per user unit, with room for detail -->
-        <shapeB grid:requiredPpu="0.5" /><!-- The icon has at last a half pixel per user unit, less detailed -->
-        <shapeC/><!-- Fine details are too crowded to display, and so use simpler shape -->
-    </switch>
-</svg>
+<switch>
+    <shapeA grid:requiredPpu="1" /><!-- The icon is >= 1:1, meaning at least 1 pixel per user unit, with room for detail -->
+    <shapeB grid:requiredPpu="0.5" /><!-- The icon has at last a half pixel per user unit, less detailed -->
+    <shapeC/><!-- Fine details are too crowded to display, and so use simpler shape -->
+</switch>
 ```
 
-**NAMING**: pixelsPerUnit and pixelsPerView rather than ppuRange and ppvRange?
+Implementations that support grid fitting should satisfy the `requiredExtensions`. **TODO**: Just use the same URL as the xmlns?
+
+```xml
+<switch>
+    <shapeA requiredExtensions="https://github.com/fdwr/SvgGridFitting" />
+    <shapeB/><!-- Default one, no grid fitting -->
+</switch>
+```
+
+**NAMING**: `pixelsPerUnit` and `pixelsPerView` rather than ppuRange and ppvRange?
 
 ## Adjustment operators:
 
@@ -760,9 +763,15 @@ Stretch coordinates between two rounded anchors, either linearly or corner-to-co
     - SVG Path Visualizer webpage – https://svg-path-visualizer.netlify.app/
     - SVG Native Viewer – https://github.com/adobe/svg-native-viewer
 - Online tools
-    Basic editors
+    - Basic editors
         https://editsvgcode.com/
         https://www.svgviewer.dev/
+- Alternative Formats
+    - Binary protobuff version of SVG https://github.com/GLMap/svgpb 2026-10-07 
+    - IconVG binary vector format https://github.com/google/iconvg https://github.com/google/iconvg/blob/main/spec/iconvg-spec.md 2026-10-07 
+    - Haiku HVIF vector icons https://www.haiku-os.org/articles/2006-11-13_why_haiku_vector_icons_are_so_small/ 2026-10-07 
+    - Rive binary vector format https://rive.app/docs/runtimes/advanced-topic/format 2026-10-07
+    - TinyVG binary vector format https://tinyvg.tech/index.htm 2026-10-07
 
 # License
 
