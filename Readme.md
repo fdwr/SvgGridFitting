@@ -7,29 +7,24 @@ Dwayne Robinson 2026-10-01
 
 SVG is great for resolution independent iconography, but try rendering icons to sizes they weren't designed for, and notice...
 
-- The blurry borders and collapsed lines of text on the page:
-
-  ![Blurry lines of text on page](comparison-icons8-fluency-paste.png)
-
-- The asymmetric connectors with a mix of crisp lines and muddy gray lines:
-
-  ![Asymmetric edges between connectors](comparison-icons8-fluency-ungroup-objects.png)
-
-- Collapsed comb tines when the SVG canvas is displayed shifted, even at the natural canvas pixel size:
-
-  ![Collapsed comb tines](comparison-icons8-fluency-afro-pick.png)
-
-- Faint gaps between bars in the bar chart:
-
-  ![Faint gaps in the bar chart](comparison-icons8-fluency-bar-chart.png)
-
-- Uneven gridlines:
-
-  ![Uneven](comparison-icons8-fluency-blueprint.png)
-
-- Shifted key caps:
-
-  ![Shifted key caps](comparison-icons8-fluency-keyboard.png)
+<table>
+<tr>
+<td>The blurry borders and collapsed text lines:<br/><img src="comparison-icons8-fluency-paste.png"/></td>
+<td>The asymmetric connector thickness:<br/><img src="comparison-icons8-fluency-ungroup-objects.png"/></td>
+</tr>
+<tr>
+<td>Collapsed comb tines shifted display:<br/><img src="comparison-icons8-fluency-afro-pick.png"/></td>
+<td>Faint gaps between bars in the bar chart:<br/><img src="comparison-icons8-fluency-bar-chart.png"/></td>
+</tr>
+<tr>
+<td>Uneven gridlines:<br/><img src="comparison-icons8-fluency-blueprint.png"/></td>
+<td>Shifted key caps:<br/><img src="comparison-icons8-fluency-keyboard.png"/></td>
+</tr>
+<tr>
+<td>Grayish bell spacing:<br/><img src="comparison-pictogrammers.com-material-design-room-service.png"/></td>
+<td>Inconsistent line brightness:<br/><img src="comparison-icons8-fluency-select-all.png"/></td>
+</tr>
+</table>
 
 - **TODO**: Insert more images showing problems. Include: blurry lines, excess detail which becomes a blurry mess, detail collapse, minimum pixel distance, contour offset.
 - **TODO**: Add Pencil for 45 degree angle – LunaSvgTestData\icons8.com\icons8-office-edit XS 16x16.svg
@@ -782,6 +777,8 @@ Integrate this snippet above somewhere:
 The SVG working group had some [previous ponderings](https://www.w3.org/Graphics/SVG/WG/wiki/Proposals/SVG_hinting) on the problem, and [OpenType/TrueType typography](https://docs.microsoft.com/en-us/typography/opentype/spec/ttch01) already solved these problems decades ago for glyphs, but implementing a complex nearly Turing-complete instruction language is overkill here (which would hamper adoption and likely increase software security risks), as the problems can be satisfied by a set of new elements and attributes for the following aspects.
 
 How does grid-fitting work with non-axis aligned transforms? Should there be entire shape level grid-fitting using the screenspace bounds, such as the four corners of the fillbounds, rather than the screenspace transformed points? I'm thinking of cases like a rotated ellipse.
+
+What about dashes? Gradient stops?
 
 ## Terms for bikeshed naming
 

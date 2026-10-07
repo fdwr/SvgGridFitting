@@ -1544,10 +1544,12 @@ Related:
         Microsoft W3C rep for SVG - https://github.com/atanassov, https://www.w3.org/groups/wg/svg/participants
         https://svgwg.org/specs/svg-native/
         https://svgwg.org/svg2-draft/conform.html#secure-static-mode
-    WPF
-        WPF SnapsToDevicePixels and UseLayoutRounding - https://blog.benoitblanchon.fr/wpf-blurry-images/
-        WPF GuidelineSets - https://www.wpftutorial.net/DrawOnPhysicalDevicePixels.html
-        Images and Icons for Visual Studio - https://docs.microsoft.com/en-us/visualstudio/extensibility/ux-guidelines/images-and-icons-for-visual-studio?view=vs-2022
+    SVG alternatives
+        WPF
+            WPF SnapsToDevicePixels and UseLayoutRounding - https://blog.benoitblanchon.fr/wpf-blurry-images/
+            WPF GuidelineSets - https://www.wpftutorial.net/DrawOnPhysicalDevicePixels.html
+            Images and Icons for Visual Studio - https://docs.microsoft.com/en-us/visualstudio/extensibility/ux-guidelines/images-and-icons-for-visual-studio?view=vs-2022
+        TinyVG https://tinyvg.tech/
     TrueType
         TrueType hinting is overkill - https://docs.microsoft.com/en-us/typography/opentype/spec/ttch01
     Tools
@@ -1587,3 +1589,9 @@ Related:
         My Illustrator snapping settings by Bjango https://bjango.com/articles/illustratorsnapping/  2022-05-22
         The one killer feature icon fonts have over svg OR: why github icons look like shit now https://swatinem.de/blog/the-one-killer-feature-of-icon-fonts/ 2016-01-31
         Pixel Hinting for Crisp Icons by Danelle Bailey http://danellebailey.com/design-blog/2016/9/29/pixel-hinting-for-crisp-icons 2016-10-05
+    SVG File Sources
+        Icons
+            https://github.com/Templarian/MaterialDesign
+            https://github.com/PapirusDevelopmentTeam/papirus-icon-theme
+        https://freesvg.org/
+        https://dev.w3.org/SVG/tools/svgweb/samples/svg-files/
