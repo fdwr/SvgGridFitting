@@ -18,7 +18,7 @@ SVG is great for resolution independent iconography, but try rendering icons to 
 </tr>
 <tr>
 <td>Uneven gridlines:<br/><img src="comparison-icons8-fluency-blueprint.png"/></td>
-<td>Shifted key caps:<br/><img src="comparison-icons8-fluency-keyboard.png"/></td>
+<td>Shifted key caps with gaps:<br/><img src="comparison-icons8-fluency-keyboard.png"/></td>
 </tr>
 <tr>
 <td>Grayish bell spacing:<br/><img src="comparison-pictogrammers.com-material-design-room-service.png"/></td>
@@ -216,25 +216,25 @@ An invisible point to help anchor other shapes' points to and construct microtra
 ```
 
 **TODO**:
-- If they do not affect the bounding boxes, what about querying the anchor object itself directly? Should that return an empty but placed box?
+- If anchors do not affect the bounding boxes, what about querying the anchor object itself directly? Should that return an empty but correctly positioned box?
 
 ### `<grid:adjustment/>`
 
 A reusable series of adjustments in the `<defs>` section, including rounding, anchor transforms (nudges), recontouring, and separation contraints, with each adjustment executed in order. Multiple adjustments can be separated by semicolons to form a list of adjustments, useful for `<path>` where each group of adjustments is referenced by index 0 to N-1.
 
+- `id` – name of the adjustment to reuse in an `adjust` attribute later.
+- `adjust` – the adjustments list definition. This `adjust` attribute can refer to other adjustments (e.g. `adjust="alignShape(...) #someOtherAdjustment"`), but circular references are not allowed (further recursion stops) and implementations should limit expansion to prevent malicious memory allocation failures (e.g. restrict concatenated strings to 1KB). The adjustments all take place in the context of their usage, meaning an `alignShape()` uses the bounding box of the shape it's used in.
+
 ```xml
 <defs>
-    <adjustment id="myAdjustment" grid:adjust="round(x) floor(y)" />
-    <adjustment id="myAdjustmentList" grid:adjust="floor(); ceil(); recontour(2)"/>
-    <adjustment id="concatenatedAdjustmentList" grid:adjust="#myAdjustment; #myAdjustmentList"/>
+    <grid:adjustment id="myAdjustment" adjust="round(x) floor(y)" />
+    <grid:adjustment id="myAdjustmentList" adjust="floor(); ceil(); recontour(2)"/>
+    <grid:adjustment id="concatenatedAdjustmentList" adjust="#myAdjustment; #myAdjustmentList"/>
 </defs>
 
 <polygon grid:adjust="#myAdjustment" points="..." />
 <path grid:adjust="roundStrokeWidth()" adjustments="#myAdjustmentList" d="..."/>
 ```
-
-- `id` – name of the adjustment to reuse in an `adjust` attribute later.
-- `adjust` – the adjustments list definition. This `adjust` attribute can refer to other adjustments (e.g. `adjust="alignShape(...) #someOtherAdjustment"`), but circular references are not allowed (further recursion stops) and implementations should limit expansion to prevent malicious memory allocation failures (e.g. restrict concatenated strings to 1KB).
 
 **TODO**:
 - Are semicolons appropriate separators? They have precedent in `svg.elements.animate.keyTimes` (e.g. `keyTimes="0; 0.25; 0.5; 0.75; 1"`) https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/keyTimes, and semicolons are also oddly used to separate attributes inside attributes (e.g. `svgView(viewBox(0,0,200,200);preserveAspectRatio(none))`) https://svgwg.org/svg-next/linking.html#SVGFragmentIdentifiersDefinitions.
@@ -272,6 +272,10 @@ Applies a series of microadjustments to the coordinates of a shape or the entire
 <!-- Round the stroke width to a whole pixel and recenter the strokes -->
 <rect ... stroke="blue" grid:adjust="roundStrokeWidth() roundStroke()"/>
 ```
+
+**TODO**:
+- Should I allow anchor names directly inside `adjust` attributes (e.g. `adjust="#someAnchor"`)? It would behave differently than a named `<adjustment>` in the `<defs>` section (e.g. `adjust="#someAdjustment"`) which is more like a copy and paste into the current context, instead applying the named anchor's *resolved* displacement. Would that be more ambiguous when reading (unless you know whether it's an anchor vs adjustment)? Would an explicit `adjust="attach(#someAnchor)"` be better? If I allow anchor names directly inside an adjustment (essentially a terser `nudge(#anchorName)`), then does that undermine the utility of `nudge()`? I think `nudge()` is still useful because it's semantically clear and also supports a scale factor for the displacement.
+- What is the dependency order between anchors? Resolving anchors will obviously require one pass to identify where they are in the tree and another pass to resolve them in screen space, but should/can they be interleaved with rendering (memoized), or do they need to be a separate pass before rendering? Since rendering needs to apply screen tranforms anyway, it be nice to avoid that work twice, but then adjustment could impact that anyway (thus necessitating different slightly different transforms). Unlike rendering (where painterly rendering paints from the first element back to front), the dependency order of anchors might be inverted (anchorA refers to later anchorB). The logic seems fairly clear for *sibling* anchors where you memoize on demand, but what about adjustments referring to inner child anchors (which would introduce a paradox), or adjustments referring to a sibling's child before that branch has been resolved? If the parent's adjustment moves the children, then do child anchors need to be reevaluated? The only reasonable answer for parent/child references is that inner anchors (and inner shapes) are nominally evaluated in *unadjusted* screen space first, and any displacements are applied to the parent group, which then translates the children and would reevaluate adjustments (though presumably any further rounding would yield the same result again, since it's already rounded now, but you'd have to be careful to not doubly round edge cases).
 
 ### `grid:adjustments="...; ..."`
 
