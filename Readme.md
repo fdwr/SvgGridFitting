@@ -1,5 +1,5 @@
 # 🚧 SVG Pixel Snapping (Grid Fitting) 🚧
-Dwayne Robinson 2026-10-01
+Dwayne Robinson 2022-07-28 to 2026-10-07
 
 # 🛑 *This is preliminary with no working implementation yet*
 
