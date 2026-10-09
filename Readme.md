@@ -399,7 +399,7 @@ round value/coordinate to nearest whole integer or multiple of `spacing`, defaul
 <rect ... grid:adjust="round(x reorient=[1 1])"/>
 ```
 
-**TOOD**:
+**TODO**:
 - Should any attributes related to edges/normals/winding be factored out into a separate operator, leaving round to be pure point rounding?
 - There are many common cases for rounding that could be expressed as a single keyword, like: upward, downward, leftward, rightward (achieved via floor/ceil and rounding only one axis), or inward, outward (achieved via floor/ceil and flipping based on a point's edge directions). Should these be added as keywords, should I include some common definitions here for the `<defs>` section to define?
 
@@ -813,7 +813,7 @@ Nonlinear shadows should be possible via `<switch>` `requiredPpv` and `<separate
 | 48px      | 1px                                   |
 | 64px      | 1px                                   |
 
-It would be great to have a single master SVG that achieved these, rather than 6!:
+It would be great to have a single master SVG that achieved these, rather than 6 different files!:
 
 ![Waterfall](comparison-papirus-icon-theme-text-x-hex.png)
 ![NES](comparison-papirus-icon-theme-fceux.png)
