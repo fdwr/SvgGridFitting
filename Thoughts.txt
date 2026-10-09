@@ -1577,6 +1577,7 @@ Related:
         Interactive Guide to Paths https://www.joshwcomeau.com/svg/interactive-guide-to-paths/ 2026-10-05
         A Primer on Bézier Curves https://pomax.github.io/bezierinfo/#circles
         Material Design "Clarity (Pixel perfection)" - https://material.io/design/iconography/system-icons.html#grid-and-keyline-shapes
+        Papirus Icon Creation Basics https://github.com/PapirusDevelopmentTeam/papirus-icon-theme/wiki/Icon-creation-basics#pixel-alignment
         Adobe Spectrum Iconography - https://spectrum.adobe.com/page/iconography/#Characteristics
         Adobe Draw pixel-perfect art https://helpx.adobe.com/illustrator/using/pixel-perfect.html
         IBM Carbon Design System - https://www.carbondesignsystem.com/guidelines/icons/contribute/

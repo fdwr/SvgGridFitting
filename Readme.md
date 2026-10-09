@@ -28,7 +28,7 @@ SVG is great for resolution independent iconography, but try rendering icons to 
 
 # What
 
-This document extends SVG with microadjustment attributes to remedy those fuzzy edges/smudgy details when the graphic is rendered at sizes it wasn't an intended for, especially for small size scenarios (e.g. iconography in toolbars, menus, webpage links) on medium-DPI displays (e.g. 24x24px, 32x32px, 48x48px). It proposes operations to round coordinates, align geometry to shared anchors, adjust contours/stroke widths, preserve symmetry, enforce minimum separations, stretch points, and conditionally suppress details at given sizes. These operations are lower level actions than the usual high-level enumerations (e.g. [`alignment-baseline=bottom`](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Attribute/alignment-baseline)) but higher level than say TrueType instructions (e.g. [`SPVTL` Set Projection_Vector To Line](https://learn.microsoft.com/en-us/typography/opentype/spec/tt_instructions#set-projection_vector-to-line)), akin to SVG [`transform=` operations](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Attribute/transform#transform_functions).
+This document extends SVG with microadjustment attributes to remedy those fuzzy edges/smudgy details when the graphic is rendered at sizes it wasn't an intended for, especially for small size scenarios (e.g. iconography in toolbars, menus, webpage links) on medium-DPI displays (e.g. 24x24px, 32x32px, 48x48px). It proposes operations to round coordinates, align geometry to shared anchors, adjust contours/stroke widths, preserve symmetry, enforce minimum separations, stretch points, and conditionally suppress details at given sizes. These operations are lower-level actions than the usual declarative enumerations (e.g. [`alignment-baseline=bottom`](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Attribute/alignment-baseline)) but higher level than say TrueType instructions (e.g. [`SPVTL` Set Projection_Vector To Line](https://learn.microsoft.com/en-us/typography/opentype/spec/tt_instructions#set-projection_vector-to-line)), akin to SVG [`transform=` operations](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Attribute/transform#transform_functions).
 
 ## Inadequate approaches already tried
 
@@ -452,7 +452,7 @@ Maybe pull the more advanced aspects out of `round` related to normals and edges
 
 ### `recenter(size, sizeRoundingMode)`
 
-Round to either pixel centers or pixel corners depending on whether the input size is odd or even (after scaled to screen space and rounded). This lower level function is sometimes useful, but most use cases can generally favor `alignShape()` or `roundStrokeWidth()`+`roundStroke()` or `recontour`.
+Round to either pixel centers or pixel corners depending on whether the input size is odd or even (after scaled to screen space and rounded). This lower-level function is sometimes useful, but most use cases can generally favor `alignShape()` or `roundStrokeWidth()`+`roundStroke()` or `recontour`.
 
 - `size` – an input size in user coordinates (typically the size of a shape or stem thickness) to transform to screen space, round to an integer, and evaluate the parity to determine the position rounding bias of 0 for even sizes or 0.5 for odd sizes. If a single scalar size is given, it's treated as `[width=size height=size]`.
 - `sizeRoundingMode`=nearestLow – rounding mode for the input size.  Note it's only relevant for `positionRounding=center*`.
@@ -790,6 +790,33 @@ The SVG working group had some [previous ponderings](https://www.w3.org/Graphics
 How does grid-fitting work with non-axis aligned transforms? Should there be entire shape level grid-fitting using the screenspace bounds, such as the four corners of the fillbounds, rather than the screenspace transformed points? I'm thinking of cases like a rotated ellipse.
 
 What about dashes? Gradient stops?
+
+Can we handle nonlinear margin cases like Papirus pixel guidance? https://github.com/PapirusDevelopmentTeam/papirus-icon-theme/blob/master/tools/work/DESIGN.md#main-icon-sizes
+
+Icon size | Design to | Margin
+----------|-----------|--------
+16px      | 16x16     | 0px
+22px      | 20x20     | 1px
+24px      | 20x20     | 2px
+32px      | 28x28     | 2px
+48px      | 40x40     | 4px
+64px      | 56x56     | 4px
+
+Nonlinear shadows should be possible via `<switch>` `requiredPpv` and `<separate>`. https://github.com/PapirusDevelopmentTeam/papirus-icon-theme/blob/master/tools/work/DESIGN.md#shadow-and-highlight
+
+| Icon size | Shadow offset (+y), hilight size (px) |
+| --------- | ------------------------------------- |
+| 16px      | normally no shadow or highlight       |
+| 22px      | 0.5px (use the toolbar text entry)    |
+| 24px      | 0.5px                                 |
+| 32px      | 1px                                   |
+| 48px      | 1px                                   |
+| 64px      | 1px                                   |
+
+It would be great to have a single master SVG that achieved these, rather than 6!:
+
+![Waterfall](comparison-papirus-icon-theme-text-x-hex.png)
+![NES](comparison-papirus-icon-theme-fceux.png)
 
 ## Terms for bikeshed naming
 
