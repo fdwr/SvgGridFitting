@@ -740,7 +740,7 @@ Stretch coordinates between two rounded anchors, either linearly or corner-to-co
 
 # Considerations
 
-- Why use imperative operations in `adjust` rather than purely declarative attributes? Originally I used a declarative approach, but the interactions and ambiguity of operation order became too fuzzy. Plus it's more like its cousin `transform` this way.
+- Why use imperative operations in `adjust` rather than purely declarative attributes? Originally I used a more declarative approach (`attributeX="foo" attributeY="bar"...`), but the interactions and ambiguity of operation order became too fuzzy. Plus it's more alike its cousin `transform` this way, and these adjustments are essentially screenspace transformations (microtranslations and scales).
 - Why not represent each of these as XML elements, with `stretch(...) separate(...)` being `<stretch .../><separate .../>` instead, like `<linearGradient .../><radialGradient .../>`? Meh, they're not mutually exclusive, and I *could* add elements too for each of these constructs, but do they simplify authorship, tooling, or implementation?
 
 # Related
