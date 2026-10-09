@@ -642,6 +642,7 @@ Recontour the shape's path given the current `stroke-width`. The operator inheri
 <path
     d="M0,16 L12,16 L12,28 Z
        M4,18 L10,23 L10,18 Z"
+    fill="none"
     stroke="orange"
     stroke-width="3"
     grid:adjust="restroke()"
