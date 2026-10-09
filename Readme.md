@@ -636,7 +636,17 @@ Push the contour in or out by the scaled amount, displacing individual points al
 
 ### `restroke(...)`
 
-Recontour the shape's path given the current `stroke-width`. The operator inherits all the parameters from `recontour` excluding those related to sizes, since sizing is implicit (`thickness`, `sizeRounding`, `resize`). If the `stroke` is `none` or the `stroke-width` is 0, this function behaves like `recontour()` with 0 size, but if the stroke is transparent (`stroke-opacity` = 0), then the positioning applies the same as if the stroke was opaque.
+Recontour the shape's path given the current `stroke-width`. The operator inherits all the parameters from `recontour` excluding those related to sizes (`thickness`, `sizeRounding`, `resize`, `minimum`), since sizing is implicit and already set by `roundStrokeWidth()`. If the `stroke` is `none` or the `stroke-width` is 0, this function behaves like `recontour()` with 0 size, but if the stroke is transparent (`stroke-opacity` = 0), then the positioning applies the same as if the stroke was opaque.
+
+```xml
+<path
+    d="M0,16 L12,16 L12,28 Z
+       M4,18 L10,23 L10,18 Z"
+    stroke="orange"
+    stroke-width="3"
+    grid:adjust="restroke()"
+/>
+```
 
 ### `grid(xScale=1 yShear=0 xShear=-yShear yScale=xScale xDelta=0 yDelta=0)`
 
