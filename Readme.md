@@ -900,6 +900,7 @@ Consider the `dx` and `dy` attributes in `<text x="10" y="50" dx="0 10% 20%">SVG
 - reshape – shape or form (something) differently or again, to give a new form or orientation to.
 - reposition – place in a different position; adjust or alter the position of.
 - relocate – move to a new place and establish one's home or business there.
+- restroke - to mark or draw a line again.
 - retract – to draw back or in or pull back
 - rig – particular way in which a sailboat's masts, sails, and rigging are arranged.
 - rigging – network used for support and manipulation (as in theater scenery). The system of ropes, cables, or chains employed to support a ship's masts.
