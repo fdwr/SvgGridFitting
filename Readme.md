@@ -339,20 +339,21 @@ Implementations that support grid fitting should satisfy the `requiredExtensions
 
 These occur inside an `adjust` attribute:
 
-- `round`
-    - `floor`
-    - `ceil`
-    - `nearest`
-- `roundVertices`?
-- `recenter`
-- `roundStrokeWidth`
-- `roundStroke`
-- `nudge`
-- `alignShape`
-- `recontour`
-- `grid`
-- `separate`
-- `stretch`
+- `round` - round coordinates to grid spacing and pixel bias
+    - `floor` - shorter alias for rounding toward negative infinity
+    - `ceil` - shorter alias for rounding toward positive infinity
+    - `nearest` - shorter alias for rounding to nearest integer with ties low
+- `roundVertices`? - round coordinates considering normal vectors
+- `recenter` - round coordinates to pixel corners/centers centered between bounding dimensions
+- `roundStrokeWidth` - round the current stroke-width property to integer pixel sizes
+- `roundStroke` - round coordinates to pixel corners/centers given the current stroke-width
+- `nudge` - nudge coordinate by displacement of a named anchor
+- `alignShape` - microalign entire shape's bounding box given alignment location and rounding
+- `recontour` - round the position and/or size of filled contours given stem sizes
+- `restroke` - round the position of stroked contours using the current stroke-width
+- `grid` - set the pixel grid for rounding operations
+- `separate` - separate coordinates by a minimum screenspace distance
+- `stretch` - stretch/scale coordinates between two named anchors
 
 Each operator accepts a variable number of parameters like `transform`, but unlike `transform`, they are heterogeneous (not just a list of scalars) and support named parameters. e.g. (`recenter(2 ceil)` and `nudge(#someAnchor reorient=[1 1])`) since it can get unwieldly otherwise. Not all operators fully make sense in all contexts, like `roundStrokeWidth` or `recontour` inside an anchor's `adjust` property (since it's a single point with no strokeable content), but such cases are not degenerate errors, treating either with reasonal defaults (`recontour` would center the anchor point given it's default position rounding) or as a nop (`roundStrokeWidth` is ignorable).
 
@@ -360,12 +361,12 @@ Each operator accepts a variable number of parameters like `transform`, but unli
 
 round value/coordinate to nearest whole integer or multiple of `spacing`, defaulting with halves toward negative infinity (not round to nearest even, which would introduce a staggered appearance).
 
-- `axes`=xy – which axes to round: `x`,`y`,`xy`. **TODO**: Consider that technically this is redundant with `reorient` (where a `[0 0 0 1]` matrix would constrain movement to y-only), but then this is much more concise, semantically clearer, and less error prone. So probably worth keeping. Additionally, keeping the `axes` fixes a problem with positional parameters where saying `floor(x, 0.5)` is clear enough that you're flooring x with a bias of 0.5, but saying `floor(0.5)` looks like you're flooring the input value 0.5, which is confusing.
+- `axes`=xy – which axes to round: `x`,`y`,`xy`. **TODO**: Consider that technically this is redundant with `reorient` (where a `[0 0 0 1]` matrix would constrain movement to y-only), but then this is much more concise, semantically clearer, and less error prone. So probably worth keeping. Additionally, keeping the `axes` fixes a problem with positional parameters where saying `floor(x, 0.5)` is clear enough that you're flooring x with a bias of 0.5, but saying `floor(0.5)` looks like you're flooring the input value 0.5, which is confusing. **TODO**: Consider renaming this to `attribute`, like the `animate` `attributeName` (except not quite so generic, since original high-level attributes may not be accessible still by the later stage of path grid fitting).
 - `bias`=0 – the value that determines the pixel/subpixel origin, typically useful for rounding to pixel corners (0) vs pixel centers (0.5). The bias is subtracted from the coordinate before rounding and then added back. e.g. floor(5.2 - 0) + 0 = 5.0, but floor(5.2 - 0.5) + 0.5 = 4.5. The expected is 0 through 0.9999, but it could be larger if the spacing is larger, like 1. 
 - `spacing`=1 – how far apart the rounding is in grid units. e.g. Given the default grid of device pixels, spacing 2 means every 2 pixels, and 0.5 means every half pixel. The coordinate is divided by the spacing before rounding and then rescaled afterward. e.g. floor(5.2 / 2) * 2 = 4, and floor(7.8 / 2) * 2 = 6, and spacing=2 with bias=1 yielding floor((7.2 - 1.0) / 2.0) * 2.0 +  1.0 = 7.0.
 - `prebias`=bias – value subtracted from the coordinate before rounding.
 - `postbias`=bias – value added to the coordinate after rounding. **TODO**: Maybe delete prebias and postbias. They enable rounding halves N.5 up or down when used with ceil/floor, but it's probably easier to just have an explicit mode=nearestLow and mode=nearestHigh. It also enables weirdness like being able to translate by large amounts in screenspace, which isn't the intent of grid fitting - it's just intended to slightly nudge points by a pixel fraction or two.
-- `mode`=nearestLow – which rounding mode. There is deliberately no round-halves-to-nearest-even, which would yield a staggered appearance graphically.
+- `mode`=nearestLow – which rounding mode. There is deliberately no round-halves-to-nearest-even, which would yield a staggered appearance graphically. **TODO**: I think some xy cases warrant a 2D expression, so you could say `round(xy [floor ceil])` to round x left and y up, without needing to repeat `floor(x bias=0.5) ceil(y bias=0.5)`.
     - `floor` - round value/coordinate toward negative infinity.
     - `ceil` - round value/coordinate toward positive infinity.
     - `nearestLow` - round toward nearest integer with halves/ties low toward negative infinity.
@@ -400,7 +401,7 @@ round value/coordinate to nearest whole integer or multiple of `spacing`, defaul
 ```
 
 **TODO**:
-- Should any attributes related to edges/normals/winding be factored out into a separate operator, leaving round to be pure point rounding?
+- Should any attributes related to edges/normals/winding be factored out into a separate operator, leaving round to be pure point rounding? Or maybe moved all the way up into `recontour`?
 - There are many common cases for rounding that could be expressed as a single keyword, like: upward, downward, leftward, rightward (achieved via floor/ceil and rounding only one axis), or inward, outward (achieved via floor/ceil and flipping based on a point's edge directions). Should these be added as keywords, should I include some common definitions here for the `<defs>` section to define?
 
 ```xml
@@ -448,14 +449,14 @@ Convenience function to round value/coordinate toward nearest integer, with halv
 
 ### `roundVertices()` ?
 
-Maybe pull the more advanced aspects out of `round` related to normals and edges, so that rounding can be pure (then applicable to 1D scalars and sensible outside shapes too).
+**TODO**: Maybe pull the more advanced aspects out of `round` related to normals and edges into this, so that rounding can be purer (then applicable to 1D scalars and other things outside shapes and coordinates too, like `stroke-dasharray` and `text` `dx`...). Though, then do I really need this, if `recontour` is more capable now? It would be a kinda intermediate thing between a simpler `round` and complete `recontour` that just exists to confuse :b.
 
 ### `recenter(size, sizeRoundingMode)`
 
 Round to either pixel centers or pixel corners depending on whether the input size is odd or even (after scaled to screen space and rounded). This lower-level function is sometimes useful, but most use cases can generally favor `alignShape()` or `roundStrokeWidth()`+`roundStroke()` or `recontour`.
 
 - `size` – an input size in user coordinates (typically the size of a shape or stem thickness) to transform to screen space, round to an integer, and evaluate the parity to determine the position rounding bias of 0 for even sizes or 0.5 for odd sizes. If a single scalar size is given, it's treated as `[width=size height=size]`.
-- `sizeRoundingMode`=nearestLow – rounding mode for the input size.  Note it's only relevant for `positionRounding=center*`.
+- `sizeRoundingMode`=nearestLow – rounding mode for the input size. Note it's only relevant for `positionRounding=center*`.
 - `sizeBias` – a bias to add to the screen-space size before rounding, which can be used to change the rounding threshold or invert even/odd parity.
 - `positionRoundingMode`=nearestLow – rounding mode for the position. **TODO**: Maybe unnecessary, since you'd always want recenter to, well, center it - just putting here now for completeness. Maybe you want nearestHigh.
 - `positionBias`=0 – extra rounding bias for the position. **TODO**: Maybe unnecessary since determined by the scaled size's parity - just putting here now for completeness.
@@ -534,13 +535,15 @@ Round the current stroke width in screen-space to whole pixels, rounding it to n
 Round coordinate based on the current stroke-width so that even thicknesses are aligned to pixel corners and odd thicknesses are aligned to pixel centers. e.g. `roundStroke(floor [left top])` to align the top left, `roundStroke()` to center, `roundStroke(floor [left top] directionInverts=true)` for rounding outward.
 
 - `mode`=center – rounding mode: floor, ceil, nearestLow, nearestHigh, nearest=nearestLow, centerLow, centerHigh, center=centerLow.
-- `offset`=[center center] – the rounding point for the stroke, using normalized values 0-1 or keywords `[left/center/right top/center/bottom]`. e.g. `anchor=[left top]` or `anchor=[1 0]` for the top-right or `offset=[0.5 0.5]` for the midpoint.
-**NAMING**: alignment? basePoint? referenceOrigin? origin? referencePoint? hotSpot? localOffset? normalizedOffset?
+- `offset`=[center center] – the rounding point for the stroke, using normalized values 0-1 or keywords `[left/center/right top/center/bottom]`. e.g. `anchor=[left top]` or `anchor=[1 0]` for the top-right or `offset=[0.5 0.5]` for the midpoint. **NAMING**: alignment? basePoint? referenceOrigin? origin? referencePoint? hotSpot? localOffset? normalizedOffset?
 - `directionInverts` – invert the rounding mode if the edge flows negative. **TODO**: Does this need to be an x,y pair, like `directionInverts=[false true]` if you want asymmetric behavior across axes? **TODO**: Do I need to consider winding direction too here? Is `directionInverts` sufficient?
 
 ```xml
 <circle cx="50" cy="50" r="20" stroke-width="3" grid:adjust="roundStrokeWidth() roundStroke()"/>
+<circle cx="50" cy="50" r="20" stroke-width="3" grid:adjust="roundStrokeWidth() roundStroke([floor ceil] [left bottom])"/>
 ```
+
+**TODO**: Do I really need this, if `restroke` (variant of `recontour`) is more capable now?
 
 ### `nudge(#anchor)`
 
@@ -600,7 +603,7 @@ Align an entire shape, rounding the given local anchor. e.g. `alignShape()` to c
 
 Push the contour in or out by the scaled amount, displacing individual points along their normal vectors to expand or contract the contour and potentially both resize the thickness and reposition the stems. The new point is at the intersection of their displaced parallel lines/curves (usually along the angle bisector, not expansion of the less useful form here https://en.wikipedia.org/wiki/Expansion_(geometry) which just inserts new edge segments). Depending on the path shape, it may make more sense to recontour half on either side of a stem, or to recounter just one side (such as the inside, leaving the outside alone). For most cases, just `recontour(1)` for a 1-unit-wide line would give good default results.
 
-- `thickness`=0 – the thickness of the stem or size of the object (since computing stem widths at runtime would be expensive, and there are ambiguous where it can't be known quite what you want), which is multiplied times the normal vectors and offset fraction to compute an offset for rounding. It accepts a shape too `[width height]` if asymmetric. The thickness must be uniform throughout the shape (unless using separate adjustment lists per part). **NAMING**: size? offset? normalDistance? **TODO**: Should `stroke-width` be a special keyword value? If so, does that mostly obviate roundStroke, or is that still worth having because it's simpler?
+- `thickness`=0 – the thickness of the stem or size of the object (since computing stem widths at runtime would be expensive, and there are ambiguous where it can't be known quite what you want), which is multiplied times the normal vectors and offset fraction to compute an offset for rounding. It accepts a shape too `[width height]` if asymmetric. The thickness must be uniform throughout the shape (unless using separate adjustment lists per part). **NAMING**: size? offset? normalDistance? **TODO**: Should `stroke-width` be a special keyword value? If so, does that mostly obviate roundStroke, or is that still worth having because it's simpler? Should there be a separate function `restroke`? Should there be a fillbounds parameter that determines this automatically, if the shape is filled vs stroked?
 - `sizeRounding`=nearestLow – rounding mode for the thickness: floor, ceil, nearestLow, nearestHigh, nearest=nearestLow. Note it's only relevant for `positionRounding=center*`.
 - `positionRounding`=center – rounding mode for the stem position: floor, ceil, nearestLow, nearestHigh, nearest=nearestLow, centerLow, centerHigh, center=centerLow. **TODO**: Should this support a `<rounding>` definition in the `<defs>` section to quickly reuse bias/spacing/mode? e.g. `positionRounding=#myRounding`.
 - `offset`=[center center] – the rounding point for the stem or shape, using normalized values 0-1 or keywords `[left/center/right top/center/bottom]`. e.g. `offset=[left top]` or `offset=[1 0]` for the top-right or `offset=[0.5 0.5]` for the midpoint.
@@ -609,7 +612,7 @@ Push the contour in or out by the scaled amount, displacing individual points al
 - `windingDirection`=right – which winding direction the normals point to. The default is right/clockwise, meaning that (from the perspective of a single vertex in the path in the direction of the next edge) the overall direction turns right, and that the normal points right (that is, a clockwise circle would point inward). If the graphics editor emits outer paths that are counter-clockwise, set this to left. The properties `fill-rule:nonzero` to `fill-rule:evenodd` make no difference.
 - `preserveTangent`=? – try to keep tangent angles consistent. This would be useful on the horizontal stem of the letter "A" so vertical alignment wouldn't thicken or [thinnen](https://quod.lib.umich.edu/m/middle-english-dictionary/dictionary/MED45320) the slanted legs. **TODO**: Should the default be true? Are there any undesireable consequences? How would this interact with the normal vectors?
 - `preserveArcSizes`=true – preserve arc sizes when possible by nudging neighbors. For example, given the top-left of a rounded rectangle, if you nudge the left edge leftward, then the top neighboring vertex needs to be displaced the same amount leftward, stretching the top crossbar but leaving the arc's shape and surface area the same (otherwise the corners could appear dimmer since rx was essentially elongated). **TODO**: Some cases cannot preserving arc sizes, like the bottom of a "U", where nudging the sides could deform the arcs (since there is no horizontal stem at the base to contract/expand). Should the overall circular shape be preserved (by moving the top ends of the arcs up), or should the arcs be squashed horizontally slightly? I'm thinking the latter, squashing if a single arc or averaging the middle vertex at the bottom if two arcs.
-- `resize`=true – whether to resize the contour. `true` rounds the stem thickness and, indirectly by virtue of walking around the whole path, displaces opposing neighbor points of the opposite normal nearer/farther too. `false` is useful if you just want to reposition but not change the stem thickness. **TODO**: Is it useful to resize/reposition only one axis? If so, should this be an array `resize=[true false]`, or should there be an `axes` parameter? What if you want to specify resize and reposition separately? With `axes`, would you need to state the `recontour` twice with different `axes`?
+- `resize`=true – whether to resize the contour. `true` rounds the stem thickness and, indirectly by virtue of walking around the whole path, displaces opposing neighbor points of the opposite normal nearer/farther too. `false` is useful if you just want to reposition but not change the stem thickness. **TODO**: Is it useful to resize/reposition only one axis? If so, should this be an array `resize=[true false]`, or should there be an `axes` parameter? What if you want to specify resize and reposition separately? With `axes`, would you need to state the `recontour` twice with different `axes`? What happens for a case like a circle comprised of 4 arcs rotated 45 degrees?
 - `reposition`=true – whether to reposition the contour. `true` moves the positions of contours (shifting opposing neighbor points in tandem). `false` is useful if you just want to resize but not change position. Note that both resizing and repositioning do move points in the path, but the difference is whether points move in tandom or closer/farther. More often you want *both* to be true for the crispest geometry. Having both false would be a nop.
 - `minimumSize`=1 – minimum pixel width for the thickness. **TODO**: If the thickness is 0 (a legal value which essentially means no stem width, only outline rounding), then it doesn't make sense for this minimum to be enforced. Should this be `iif(originalStrokeWidth > 0, min(roundedStroke, minimumValue), 0)` or something more complex?
 
@@ -630,6 +633,10 @@ Push the contour in or out by the scaled amount, displacing individual points al
     grid:adjust="recontour(2)"
 />
 ```
+
+### `restroke(...)`
+
+Recontour the shape's path given the current `stroke-width`. The operator inherits all the parameters from `recontour` excluding those related to sizes, since sizing is implicit (`thickness`, `sizeRounding`, `resize`). If the `stroke` is `none` or the `stroke-width` is 0, this function behaves like `recontour()` with 0 size, but if the stroke is transparent (`stroke-opacity` = 0), then the positioning applies the same as if the stroke was opaque.
 
 ### `grid(xScale=1 yShear=0 xShear=-yShear yScale=xScale xDelta=0 yDelta=0)`
 
@@ -817,6 +824,10 @@ It would be great to have a single master SVG that achieved these, rather than 6
 
 ![Waterfall](comparison-papirus-icon-theme-text-x-hex.png)
 ![NES](comparison-papirus-icon-theme-fceux.png)
+
+Consider how to round the `stroke-dasharray`. Does it need a separate operator like `roundStrokeDashArray()`, or at some point, should `round` take arbitrary parameters besides `xy` like `round(stroke-dasharray)` and `round(stroke-width)`, or should there be a separate attribute like `stroke-dasharray-rounding="ceil"`.
+
+Consider the `dx` and `dy` attributes in `<text x="10" y="50" dx="0 10% 20%">SVG</text>`. Should those round separately from x and y? Should there be a `round(dx)` attribute? Having a `dx-rounding` and `dy-rounding` for every roundable thing seems excessive.
 
 ## Terms for bikeshed naming
 
