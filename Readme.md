@@ -357,13 +357,13 @@ These occur inside an `adjust` attribute:
 - `stretch` - stretch/scale coordinates between two named anchors
 - ?`clamp` - clamp a value to minimum/maximum bound.
 
-Each operator accepts a variable number of parameters like `transform`, but unlike `transform`, they are heterogeneous (not just a list of scalars) and support named parameters. e.g. (`recenter(2 ceil)` and `nudge(#someAnchor reorient=[1 1])`) since it can get unwieldly otherwise. Not all operators fully make sense in all contexts, like `roundStrokeWidth` or `recontour` inside an anchor's `adjust` property (since it's a single point with no strokeable content), but such cases are not degenerate errors, treating either with reasonal defaults (`recontour` would center the anchor point given it's default position rounding) or as a nop (`roundStrokeWidth` is ignorable).
+Each operator accepts a variable number of parameters like `transform`, but unlike `transform`, they are heterogeneous (not just a list of scalars) and support named parameters. e.g. (`recenter(2 ceil)` and `nudge(#someAnchor redirect=[1 1])`) since it can get unwieldly otherwise. Not all operators fully make sense in all contexts, like `roundStrokeWidth` or `recontour` inside an anchor's `adjust` property (since it's a single point with no strokeable content), but such cases are not degenerate errors, treating either with reasonal defaults (`recontour` would center the anchor point given it's default position rounding) or as a nop (`roundStrokeWidth` is ignorable).
 
 ### `round(axes, bias, spacing ...)`
 
 round value/coordinate to nearest whole integer or multiple of `spacing`, defaulting with halves toward negative infinity (not round to nearest even, which would introduce a staggered appearance).
 
-- `axes`=xy – which axes to round: `x`,`y`,`xy`. **TODO**: Consider that technically this is redundant with `reorient` (where a `[0 0 0 1]` matrix would constrain movement to y-only), but then this is much more concise, semantically clearer, and less error prone. So probably worth keeping. Additionally, keeping the `axes` fixes a problem with positional parameters where saying `floor(x, 0.5)` is clear enough that you're flooring x with a bias of 0.5, but saying `floor(0.5)` looks like you're flooring the input value 0.5, which is confusing. **TODO**: Consider renaming this to `attribute`, like the `animate` `attributeName` (except not quite so generic, since original high-level attributes may not be accessible still by the later stage of path grid fitting).
+- `axes`=xy – which axes to round: `x`,`y`,`xy`. **TODO**: Consider that technically this is redundant with `redirect` (where a `[0 0 0 1]` matrix would constrain movement to y-only), but then this is much more concise, semantically clearer, and less error prone. So probably worth keeping. Additionally, keeping the `axes` fixes a problem with positional parameters where saying `floor(x, 0.5)` is clear enough that you're flooring x with a bias of 0.5, but saying `floor(0.5)` looks like you're flooring the input value 0.5, which is confusing. **TODO**: Consider renaming this to `attribute`, like the `animate` `attributeName` (except not quite so generic, since original high-level attributes may not be accessible still by the later stage of path grid fitting).
 - `bias`=0 – the value that determines the pixel/subpixel origin, typically useful for rounding to pixel corners (0) vs pixel centers (0.5). The bias is subtracted from the coordinate before rounding and then added back. e.g. floor(5.2 - 0) + 0 = 5.0, but floor(5.2 - 0.5) + 0.5 = 4.5. The expected is 0 through 0.9999, but it could be larger if the spacing is larger, like 1. 
 - `spacing`=1 – how far apart the rounding is in grid units. e.g. Given the default grid of device pixels, spacing 2 means every 2 pixels, and 0.5 means every half pixel. The coordinate is divided by the spacing before rounding and then rescaled afterward. e.g. floor(5.2 / 2) * 2 = 4, and floor(7.8 / 2) * 2 = 6, and spacing=2 with bias=1 yielding floor((7.2 - 1.0) / 2.0) * 2.0 +  1.0 = 7.0. A spacing of 0 is a nop (not an error, which is the logical extension of taking finer and finer values to infinity).
 - `prebias`=bias – value subtracted from the coordinate before rounding.
@@ -376,13 +376,13 @@ round value/coordinate to nearest whole integer or multiple of `spacing`, defaul
     - `nearest` - short alias of `nearestLow` (typically graphics rounds leftward).
     - `default` - for completeness, equal to `nearestLow`.
     - `none` - for completeness, and helpful if you want to temporarily disable a rounding call to see the effect while debugging with minor editing to the SVG.
-- `reorient`=[1 0] – reorient the displacement vector of the coordinate, which is useful for shear and reversing the vector. The default is a unit vector (x=1 y=0) which yields an identity matrix. e.g. [-1 0] reverses the displacement. [1 1] shears the displacement along 45 degrees. [-1 0 0 1] mirrors displacement horizontally. [2] scales the displacement 2x for x and y. **NAMING**: `matrix`, `displaceBy`, `displacementMatrix`, `projectAlong`, `along`, `displaceAlong`, `by`, `to`? How can the name make it clear that you're not reorienting the entire grid and not rounding along the given vector (which is done by `grid`), just the post-rounded displacement? Should this be a separate operator entirely that works on the current `displacementTransform`? What if the coordinate already has existing displacement from previous nudges or rounds that you don't want to consider?
+- `redirect`=[1 0] – redirect the displacement vector of the coordinate, which is useful for shear and reversing the vector. The default is a unit vector (x=1 y=0) which yields an identity matrix. e.g. [-1 0] reverses the displacement. [1 1] shears the displacement along 45 degrees. [-1 0 0 1] mirrors displacement horizontally. [2] scales the displacement 2x for x and y. **NAMING**: `matrix`, `displaceBy`, `displacementMatrix`, `projectAlong`, `along`, `displaceAlong`, `by`, `to`? How can the name make it clear that you're not redirecting the entire grid and not rounding along the given vector (which is done by `grid`), just the post-rounded displacement? Should this be a separate operator entirely that works on the current `displacementTransform`? What if the coordinate already has existing displacement from previous nudges or rounds that you don't want to consider?
 - `preserveTangent`=false – constrain the displacement so it proportionally moves the point, useful at angled corners to preserve the edge tangents. Note it has no effect on 90-degree corners.
 - `requireAlignedAxis`=true – disable rounding if rotation or shear apply to the world-to-screen matrix (only scaling+translation).
 - `transformReinterprets`=true – mirrored or rotated transformations reinterpret the rounding mode (e.g. horizontally mirroring flips ceil to floor, and rotation swaps x and y).
 - `directionInverts`=false – a negative edge direction (e.g. a line pointing downward or leftward) inverts the rounding mode, useful for "inward" and "outward" rounding. e.g. For a rectangle with 4 corner points and `ceil` rounding mode, the bottom right corner
 - `windingInverts`=false – whether winding direction inverts the interpretation of rounding directions (floor <-> ceil).
-- ?`fraction`=1 – a fraction to multiply the displacement by, rather than a full 100%. **TODO**: This seems completely redundant now with reorient, where you could just say `reorient=0.5`.
+- ?`fraction`=1 – a fraction to multiply the displacement by, rather than a full 100%. **TODO**: This seems completely redundant now with redirect, where you could just say `redirect=0.5`.
 
 ```xml
 <!-- Round all the 4 points (corners) of the rectangle -->
@@ -401,7 +401,7 @@ round value/coordinate to nearest whole integer or multiple of `spacing`, defaul
 <rect ... grid:adjust="round(y 1 2 mode=ceil)"/>
 
 <!-- Round along x, and displace along y at a 45-degree corner to preserve the angle -->
-<rect ... grid:adjust="round(x reorient=[1 1])"/>
+<rect ... grid:adjust="round(x redirect=[1 1])"/>
 ```
 
 **TODO**:
@@ -560,7 +560,7 @@ Attach one shape or anchor to another named anchor, to nudge a microtranslation 
 Displace coordinates with a small translation from an anchor's rounding displacement.
 
 - `#anchorName` – name of the anchor to fetch the displacement from.
-- `reorient`=[1 0] – reorient the displacement vector of the coordinate by the matrix. See above.
+- `redirect`=[1 0] – redirect the displacement vector of the coordinate by the matrix. See above.
 
 **NAMING**:
 - Use `translate`? e.g. `translate(#anchorName)` `translate(#anchorName1ForX #anchorName2ForY)`. I could, but it would confusingly differs from transform's `translate` by taking different parameters; it's less clear that it's translating by the tiny *displacement* of the anchor rather than say the x,y coordinate of the anchor; and `translate` can shift objects by huge amounts, whereas `nudge` is semantically more descriptive (a *small* translation).
