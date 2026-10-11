@@ -352,10 +352,12 @@ These occur inside an `adjust` attribute:
 - `realignShape` - microalign entire shape's bounding box given alignment location and rounding
 - `recontour` - round the position and/or size of filled contours along the normals
 - `restroke` - round the position of stroked contours using the current stroke-width
-- `grid` - set the pixel grid for rounding operations
-- `separate` - separate coordinates by a minimum screenspace distance
-- `stretch` - stretch/scale coordinates between two named anchors
+- `grid` - set the pixel grid for rounding operations.
+- `separate` - separate coordinates by a minimum screenspace distance.
+- `stretch` - stretch/scale coordinates between two named anchors.
+- ?`stretchShape` - stretches a whole shape based on bounds (like recontour).
 - ?`clamp` - clamp a value to minimum/maximum bound.
+- ?`priority` - set a priority level for the operators that follow.
 
 Each operator accepts a variable number of parameters like `transform`, but unlike `transform`, they are heterogeneous (not just a list of scalars) and support named parameters. e.g. (`recenter(2 ceil)` and `nudge(#someAnchor redirect=[1 1])`) since it can get unwieldly otherwise. Not all operators fully make sense in all contexts, like `roundStrokeWidth` or `recontour` inside an anchor's `adjust` property (since it's a single point with no strokeable content), but such cases are not degenerate errors, treating either with reasonal defaults (`recontour` would center the anchor point given it's default position rounding) or as a nop (`roundStrokeWidth` is ignorable).
 
@@ -407,6 +409,7 @@ round value/coordinate to nearest whole integer or multiple of `spacing`, defaul
 **TODO**:
 - Should any attributes related to edges/normals/winding be factored out into a separate operator, leaving round to be pure point rounding? Or maybe moved all the way up into `recontour`?
 - There are many common cases for rounding that could be expressed as a single keyword, like: upward, downward, leftward, rightward (achieved via floor/ceil and rounding only one axis), or inward, outward (achieved via floor/ceil and flipping based on a point's edge directions). Should these be added as keywords, should I include some common definitions here for the `<defs>` section to define?
+- What happens on a `<g>` since a group has no points? It probably should not blindly cascade down into all the children (adjustment inheritance is generally problematic wtih the possibility of double transforms). I suppose a nop makes the most sense, since there are no xy points to round.
 
 ```xml
 <defs>
@@ -614,7 +617,7 @@ Realigns an entire shape with a microtranslation from rounding the given local a
 Push the contour in or out by the scaled amount, displacing individual points along their normal vectors to expand or contract the contour and potentially both resize the thickness and reposition the stems. The new point is at the intersection of their displaced parallel lines/curves (usually along the angle bisector, not expansion of the less useful form here https://en.wikipedia.org/wiki/Expansion_(geometry) which just inserts new edge segments). Depending on the path shape, it may make more sense to recontour half on either side of a stem, or to recounter just one side (such as the inside, leaving the outside alone). For most cases, just `recontour(1)` for a 1-unit-wide line would give good default results.
 
 - `window`=0 – the local window size (such as the thickness of the stem or size of an object) to compute a rounding offset, combined with each coordinate's normal vectors and the alignment hook compute that offset. It accepts a single scalar if symmetric (`3`) or dimensions (`[width height]`) if asymmetric. The thickness must be uniform throughout the shape (unless using separate adjustment lists per part). **NAMING**: window? bounds? thickness? size? offset? normalDistance? windowSize? I want the name to be clear that's the size of the *window* of recontouring, not necessarily the size of the object being recontoured (even though they *could* legitimately be the same in some simple cases). **TODO**: Should `stroke-width` be a special keyword value? If so, does that mostly obviate roundStroke, or is that still worth having because it's simpler? Should there be a separate function `restroke`? Should there be a fillbounds parameter that determines this automatically, if the shape is filled vs stroked?
-- `sizeRounding`=nearestLow – rounding mode for the thickness: `floor`, `ceil`, `nearestLow`, `nearestHigh`, `nearest`=`nearestLow`, `default`=`nearestLow`, `none`. Note it's only relevant for `positionRounding=center*`.
+- `sizeRounding`=nearestLow – rounding mode for the thickness: `floor`, `ceil`, `nearestLow`, `nearestHigh`, `nearest`=`nearestLow`, `default`=`nearestLow`, `none`. Note it's only relevant for `positionRounding=center*`. **NAMING**: I want the window size and this parameter to be clearly linked. So `windowRounding`? Or change `window` to `windowSize`? Though, `windowRounding` is not as clear because it sounds like the window's position could be ronuded instead.
 - `positionRounding`=center – rounding mode for the stem position: `floor`, `ceil`, `nearestLow`, `nearestHigh`, `nearest`=`nearestLow`, `centerLow`, `centerHigh`, `center`=`centerLow`, `default`=`centerLow`, `none`. **TODO**: Should this support a `<rounding>` definition in the `<defs>` section to quickly reuse bias/spacing/mode? e.g. `positionRounding=#myRounding`.
 - `hook`=[center center] – a local anchor within the size window to attach each coordinate to, using normalized values 0-1 or keywords `[left/center/right top/center/bottom]`. e.g. `hook=[left top]` or `hook=[1 0]` for the top-right or `hook=[0.5 0.5]` for the midpoint. I originally thought of using a plain 2D offset of user units, but that was more rigid because it didn't react to resizing, and it didn't play well with dynamic sizes like stroke-width which could be set differently per shape. **NAMING**: pin, mount, dock, tie, hotspot, mooring, windowHook, alignmentOrigin, windowOrigin, windowHotspot, sizeOrigin, windowHook, boundsHook?
 - `directionInverts`=? – invert the rounding mode if the edge flows negative. **TODO**: How do I resolve the fact that for a clockwise path with outward rounding, the upward left edge will have a different inversion than the top rightward edge? Do I also need a `axisInverts` attribute, or is there a cleaner solution?
@@ -770,9 +773,33 @@ Stretch coordinates between two rounded anchors, either linearly or corner-to-co
 
 **TODO**: How does this work when a transform is applied? For mirroring or rotation, you would logically want to apply the distance along the new axis, but it's less clear for rotation/skew transforms.
 
-### `clamp(attribute, min, max)`
+### ?`stretchShape(mode)`
+
+Stretch an entire shape based on its bounds to an adjusted contour (like `recontour`). **TODO**: I generally question the utility of this operator because it would distort the shape (notably rounded arc corners), whereas combining realignment with recontouring is generally better. Nonetheless, it could be useful in certain cases 🤔. 
+
+```xml
+<rect ... adjust="stretchShape(out)" />
+```
+
+### ?`clamp(attribute, min, max)`
 
 Clamp a value to minimum/maximum bound, which could be useful for setting a minimum value during rounding, like for `stroke-width`. **TODO**: If I have a dedicated `roundStrokeWidth` with a `minimum` parameter, is this still useful? Are there cases it would be useful for coordinates?
+
+
+### ?`priority(level)`
+
+Specify a priority for the following operators, perhaps enabling some operators to clearly execute before others without ambiguity of dependency order. **TODO**: I want to avoid using this and just use implicit dependency ordering instead of named attachments, but it might be worth considering for child and sibling dependencies where `attach` alone isn't sufficient to resolve the ordering because of paradoxical cycles.
+
+```xml
+<g adjust="attach(#innerAnchor)">
+    <!--
+        Round the anchor before adjusting the group, meaning the anchor's initial position
+        is in screenspace with the default world-to-screen transform, before any parent adjustments.
+    -->
+    <anchor id="innerAnchor" adjust="priority(1) round(xy)" />
+    ...
+</g>
+```
 
 # Considerations
 
