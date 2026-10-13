@@ -28,19 +28,19 @@ SVG is great for resolution independent iconography, but try rendering icons to 
 
 # What
 
-This document extends SVG with microadjustment attributes to remedy those fuzzy edges/smudgy details when the graphic is rendered at sizes it wasn't an intended for, especially for small size scenarios (e.g. iconography in toolbars, menus, webpage links) on medium-DPI displays (e.g. 24x24px, 32x32px, 48x48px). It proposes operations to round coordinates, align geometry to shared anchors, adjust contours/stroke widths, preserve symmetry, enforce minimum separations, stretch points, and conditionally suppress details at given sizes. These operations are lower-level actions than the usual declarative enumerations (e.g. [`alignment-baseline=bottom`](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Attribute/alignment-baseline)) but higher level than say TrueType instructions (e.g. [`SPVTL` Set Projection_Vector To Line](https://learn.microsoft.com/en-us/typography/opentype/spec/tt_instructions#set-projection_vector-to-line)), akin to SVG [`transform=` operations](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Attribute/transform#transform_functions).
+This document extends SVG with microadjustment attributes to remedy those fuzzy edges/smudgy details when the graphic is rendered at sizes it wasn't an intended for, especially for small size scenarios on medium-DPI displays (e.g. 24x24/32x32/48x48px, like iconography in toolbars, menus, webpage links). It proposes operations to round coordinates, align geometry to shared anchors, adjust contours/stroke widths, preserve symmetry, enforce minimum separations, stretch points, and conditionally suppress details at given sizes. These operations are lower-level actions than the usual declarative enumerations (e.g. [`alignment-baseline=bottom`](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Attribute/alignment-baseline)) but higher level than say TrueType instructions (e.g. [`SPVTL` Set Projection_Vector To Line](https://learn.microsoft.com/en-us/typography/opentype/spec/tt_instructions#set-projection_vector-to-line)), akin to SVG [`transform=` operations](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Attribute/transform#transform_functions).
 
 ## Inadequate approaches already tried
 
 - [shape-rendering](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Attribute/shape-rendering) with `crispEdges` gives you jagged geometry, whereas you still want smoothly rendered circles and lines, just with their bounds aligned to the pixel grid.
-- Designing your SVG files on a grid (say with Inkscape) works well when displayed at *that size*, but creating different SVG's for multiple target sizes (24x24, 32x32...) becomes cumbersome and completely defeats the benefit of *scalable* vector graphics.
-- TrueType glyphs offer a powerful alternative to SVG, but they have many caveats: hinting is very challenging to graphic designers given the low-level bytecode instruction set, integration into the workflow is more awkward than just adding some lose SVG files (you need append glyphs to the file, assign a numeric id, and reference that opaque number to draw it), and it only supports monochrome color unless the rasterizer supports the latest COLR table with multiple layers and gradients. Additionally, OpenType supports SVG glyphs (not just TrueType glyphs), but there is no equivalent grid fitting support for SVG outlines.
+- Designing your SVG files on a grid (say with Inkscape) works well when displayed at *that size*, but creating different SVG's for multiple target sizes (24x24, 32x32...) becomes cumbersome and completely defeats the benefit of *scalable* vector graphics. You can see [guidance here](https://github.com/PapirusDevelopmentTeam/papirus-icon-theme/blob/master/tools/work/DESIGN.md#q-why-do-we-need-so-many-sizes-for-an-svg) "Why do we need so many sizes for an SVG? Because if we use a single size for all then the icons will be blurred at some scales. All objects in Papirus icons need to have pixel alignment.", which undermines the utility of SVG, greatly increases the artist burden, and bloats the payload.
+- TrueType glyphs offer a powerful alternative to SVG, but they have many caveats: hinting is very challenging for graphic designers given the low-level bytecode instruction set, integration into the workflow is more awkward than just adding some lose SVG files (you need append glyphs to the file, assign a numeric id like a [PUA character](https://en.wikipedia.org/wiki/Private_Use_Areas), and reference that opaque number to draw it), and it only supports monochrome color unless the rasterizer supports the latest COLR table with multiple layers and gradients. Additionally, OpenType supports SVG glyphs in the ["SVG " table](https://learn.microsoft.com/en-us/typography/opentype/spec/svg), but there is no parallel grid fitting support for SVG glyph outlines like there is for TrueType glyphs in the ["glyf" table](https://learn.microsoft.com/en-us/typography/opentype/spec/glyf).
 
 ## Requirements
 
 It should enable:
 
-- Crisp horizontal and vertical edges, and alignment for diagonal edges
+- Crisp horizontal and vertical edges, and better aligned antialiased diagonal edges
 - Pixel rounded stroke widths
 - Consistent stem thickness of paths
 - Shape symmetry around centers
@@ -161,15 +161,14 @@ More complex path cases may need to apply different adjustments to different *co
 </svg>
 ```
 
-# When - Design Plan
+# When - The Plan
 
-- ⏳1️⃣ Vet design by implementing it in:
-    - ⏳1️⃣ [LunaSVG](https://github.com/sammycage/lunasvg)
-    - ⏳2️⃣ Javascript polyfill library so webpages can dynamically fit an SVG to the current resolution (because I'm probably not going to update Chromium and deal with gn and ninja again :b).
-    - ⏳3️⃣ [Adobe SVG Native](https://github.com/adobe/svg-native-viewer)
+- ⏳1️⃣ Vet design by implementing it in [LunaSVG](https://github.com/sammycage/lunasvg)
 - ⏳1️⃣ Visualize grid-fitting in [LunaSvgSampleTest](https://github.com/fdwr/LunaSvgSampleTest).
+- ⏳2️⃣ Create Javascript polyfill library so webpages can dynamically fit an SVG to the current resolution (because I'm probably not going to update Chromium and deal with gn and ninja again :b).
 - ⏳2️⃣ Create a Node CLI app to automatically apply grid-fitting attributes, which won't be perfect but could apply reasonable defaults.
-- ⏳4️⃣ Inkscape support would be nice, to see anchors and edit adjustment properties and see adjustment lists in paths, but so long as priorities 1 and 2 are completed, and so long as Inkscape at least *preserves* the attributes, then I'm happy.
+- ⏳3️⃣ Try [Adobe SVG Native](https://github.com/adobe/svg-native-viewer)
+- ⏳4️⃣ Augment Inkscape with rendering support, anchor visibility, and adjustment editing. I see that at least Inkscape *preserves* and copies the attributes.
 
 # How
 
@@ -428,7 +427,7 @@ round value/coordinate to nearest whole integer or multiple of `spacing`, defaul
 
 Convenience function to round value/coordinate toward negative infinity.
 
-- Inherit all parameters from `round`.
+- Inherit all other parameters from `round`.
 
 ```xml
 <grid:anchor id="someAnchor" x="42" y="7" adjust="floor()"/>
@@ -438,7 +437,7 @@ Convenience function to round value/coordinate toward negative infinity.
 
 Convenience function to round value/coordinate toward positive infinity.
 
-- Inherit all parameters from `round`.
+- Inherit all other parameters from `round`.
 
 ```xml
 <grid:anchor id="someAnchor" x="42" y="7" adjust="ceil()"/>
@@ -452,20 +451,23 @@ Convenience function to round value/coordinate toward nearest integer, with halv
 <grid:anchor id="someAnchor" x="42" y="7" adjust="nearest()"/>
 ```
 
-- Inherit all parameters from `round`.
+- Inherit all other parameters from `round`.
 
 ### `roundVertices()` ?
 
-**TODO**: Maybe pull the more advanced aspects out of `round` related to normals and edges into this, so that rounding can be purer (then applicable to 1D scalars and other things outside shapes and coordinates too, like `stroke-dasharray` and `text` `dx`...). Though, then do I really need this, if `recontour` is more capable now? It would be a kinda intermediate thing between a simpler `round` and complete `recontour` that just exists to confuse :b.
+Similar to round except that it rounds along the normals.
+
+**TODO**:
+- Maybe pull the more advanced aspects out of `round` related to normals and edges into this, so that rounding can be purer (then applicable to 1D scalars and other things outside shapes and coordinates too, like `stroke-dasharray` and `text` `dx`...). Though, then do I really need this, if `recontour` is more capable now? It would be a kinda intermediate thing between a simpler `round` and complete `recontour` that just exists to confuse :b.
 
 ### `recenter(size, sizeRoundingMode)`
 
 Round to either pixel centers or pixel corners depending on whether the input size is odd or even (after scaled to screen space and rounded). This lower-level function is sometimes useful, but most use cases can generally favor `realignShape()` or `roundStrokeWidth()`+`roundStroke()` or `recontour`.
 
 - `size` – an input size in user coordinates (typically the size of a shape or stem thickness) to transform to screen space, round to an integer, and evaluate the parity to determine the position rounding bias of 0 for even sizes or 0.5 for odd sizes. If a single scalar size is given, it's treated as `[width=size height=size]`.
-- `sizeRoundingMode`=nearestLow – rounding mode for the input size. Note it's only relevant for `positionRounding=center*`.
+- `sizeRounding`=nearestLow – rounding mode for the input size. Note it's only relevant for `positionRounding=center*`.
 - `sizeBias` – a bias to add to the screen-space size before rounding, which can be used to change the rounding threshold or invert even/odd parity.
-- `positionRoundingMode`=nearestLow – rounding mode for the position. **TODO**: Maybe unnecessary, since you'd always want recenter to, well, center it - just putting here now for completeness. Maybe you want nearestHigh.
+- `positionRounding`=nearestLow – rounding mode for the position. **TODO**: Maybe unnecessary, since you'd always want recenter to, well, center it - just putting here now for completeness. Maybe you want nearestHigh.
 - `positionBias`=0 – extra rounding bias for the position. **TODO**: Maybe unnecessary since determined by the scaled size's parity - just putting here now for completeness.
 
 ```xml
@@ -524,15 +526,15 @@ Round the current stroke width in screen-space to whole pixels, rounding it to n
 - `postbias`=bias – value added to the coordinate after rounding.
 - `minimum`=1 – minimum pixel width for the stroke. If the stroke width is 0 (a legal value which essentially means no stroke), this is ignored. **TODO**: For zero stroke width, it makes no sense for this minimum to be enforced, but should the equation be `iif(originalStrokeWidth > 0, min(roundedStroke, minimumValue), 0)` or something more complex?
 
-**TODO**:
-- Does `roundStrokeWidth` have any meaningful effect inside an `<anchor>`? Maybe it does when used in conjunction with `realignShape(stroke ...)`.
-
 ```xml
 <circle cx="50" cy="50" r="20" fill="none" stroke-width="3" stroke="blue" grid:adjust="roundStrokeWidth()"/>
 
 <!-- Round the screen-space stroke to odd sizes only, 1,3,5... -->
 <circle cx="50" cy="50" r="20" fill="none" stroke-width="3" stroke="blue" grid:adjust="roundStrokeWidth(0.5 2)"/>
 ```
+
+**TODO**:
+- Does `roundStrokeWidth` have any meaningful effect inside an `<anchor>`? Maybe it does when used in conjunction with `realignShape(stroke ...)`.
 
 **NOTES**:
 - It's generally desireable to call `roundStrokeWidth` and `roundStroke` in sequence, but I could see cases where you *only* want to round the position of the stroke (leaving the width as-is) and maybe cases where you want to round the stroke thickness but leave the position unchanged (though the latter seems less likely).
@@ -550,7 +552,7 @@ Round coordinate based on the current stroke-width so that even thicknesses are 
 <circle cx="50" cy="50" r="20" stroke-width="3" grid:adjust="roundStrokeWidth() roundStroke([floor ceil] [left bottom])"/>
 ```
 
-**TODO**: Do I really need this, if `restroke` (variant of `recontour`) is more capable now? Having both `roundStroke` and `roundStrokeWidth` is a little confusing given how similar they are, and people may think that calling `roundStroke` rounds the stroke width.
+**TODO**: Do I really need this, if `restroke` (variant of `recontour`) is more capable now? Having both `roundStroke` and `roundStrokeWidth` is a little confusing given how similar sounding they are, and people may think that calling `roundStroke` rounds the stroke width.
 
 ### `attach(#anchor)`
 
@@ -576,7 +578,7 @@ Displace coordinates with a small translation from an anchor's rounding displace
 
 Realigns an entire shape with a microtranslation from rounding the given local alignment origin. `realignShape(fillBounds floor anchor=[left top])` to floor the top/left. This could be achieved via anchors, but it's a common enough case to warrant a concise helper, and it avoids needing to reposition the anchors when you edit the shape.
 
-- `bounds`=default – either an explicit size `[24,16]` in user units or keywords `default`, `fill`, `stroke`, `marker`, `clip` similar to [`SVGGraphicsElement: getBBox`](https://developer.mozilla.org/en-US/docs/Web/API/SVGGraphicsElement/getBBox). The `default` value respectively checks the shape's `fill`/`stroke`/`marker-start`/`marker-mid`/`marker-end`/`clip-path` properties to determine the bounds, which will be the clip if applied, else markers if present, else stroke bounds if stroke enabled, else the fill bounds. The screenspace bounding box on a group is the union of the contained shapes. One usage for explicit sizes is when the shape has decorative asymmetry (like say a feather sticking out of a hat) that would mess up the alignment otherwise. **TODO**: Should such cases be handled purely by anchors? This operator may still be more concise, but inline sizes are not as easy to visualize in an editor (would need a special case), and they can easily get out of sync with the graphic shape during editing. Should two anchors be support for the corners? **NAMING**: window? bounds? size? For the enumerants, I'll go with the leaner `fill` rather than {`fill-box`, `stroke-box`} like [`transform-box`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/transform-box). **TODO**: When used on an `<anchor>`, should alignment use the *parent's* bounding box, because the bounding box of an anchor would be useless emptiness anyway?
+- `bounds`=extents – either an explicit size `[24,16]` in user units or keywords `extents`, `fill`, `stroke`, `marker`, `clip`, `default`=`extents` similar to [`SVGGraphicsElement.getBBox`](https://developer.mozilla.org/en-US/docs/Web/API/SVGGraphicsElement/getBBox). The `extents` value uses the outermost extents, as if you called [SVGGraphicsElement.getBBox](https://developer.mozilla.org/en-US/docs/Web/API/SVGGraphicsElement/getBBox) with all options set true {fill, stroke, markers, clip}. The screenspace bounding box on a group is the union of the contained shapes. One usage for explicit sizes is when the shape has decorative asymmetry (like say a feather sticking out of a hat) that would mess up the alignment otherwise. **TODO**: Should such cases be handled purely by anchors? This operator may still be more concise, but inline sizes are not as easy to visualize in an editor (would need a special case), and they can easily get out of sync with the graphic shape during editing. Should two anchors be support for the corners? **NAMING**: window? bounds? size? For the enumerants, I'll go with the leaner `fill` rather than {`fill-box`, `stroke-box`} like [`transform-box`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/transform-box). **TODO**: When used on an `<anchor>`, should alignment use the *parent's* bounding box, because the bounding box of an anchor would be useless emptiness anyway?
 - `positionRounding`=[center center] – rounding mode for the alignment origin: `floor`, `ceil`, `nearestLow`, `nearestHigh`, `nearest`=`nearestLow`, `centerLow`, `centerHigh`, `center`=`centerLow`, `default`=`centerLow`, `none`.
 - `alignmentOrigin`=[center center] – the semantic alignment origin point, using keywords `[left/center/right, top/center/bottom]`. **TODO**: I don't want to support explicit user coordinates here (e.g. `[42,13]` because that's what anchors are for, which are easy to visualize in tooling without needing a special case), or semantic coordinates like [left top] or maybe normalized values like [0.5 1]. **TODO**: Supporting named anchors seems redundant (e.g. `realignShape(strokeBounds floor anchor=#someAnchor)` ) given that if you're already declaring an anchor at a specific coordinate, then you could just round the *anchor* instead `<anchor x="42" y="36" grid:adjust="floor(xy)"/>` and `adjust="attach(#someAnchor)"`? Though, `realignShape` with an anchor may still be shorter for recentering.
 - `sizeRounding`=nearestLow – rounding mode for the size to determine even/odd rounding: `floor`, `ceil`, `nearestLow`, `nearestHigh`, `nearest`=`nearestLow`, `default`, `none`. Note it's only relevant for `positionRounding=center*`. **TODO**: Do I need a size parity to invert even/odd parity.
@@ -662,6 +664,9 @@ Recontour the shape's path using the sizing information of the current `stroke-w
     grid:adjust="restroke()"
 />
 ```
+
+**NAMING**:
+- `recontourStroke` for parity with `roundStroke`?
 
 ### `grid(xScale=1 yShear=0 xShear=-yShear yScale=xScale xDelta=0 yDelta=0)`
 
@@ -761,8 +766,8 @@ Stretch coordinates between two rounded anchors, either linearly or corner-to-co
     Round the two corners outward, then stretching the points outward, yielding crisp outer edges
     and scaling the shape proportions consistently.
 -->
-<grid:anchor id="topLeftAnchor"     x="1" y="1" adjust="floor()" />
-<grid:anchor id="bottomRightAnchor" x="39" y="39" adjust="ceil()" />
+<grid:anchor id="topLeftAnchor"     x="1"  y="1"  adjust="floor()" />
+<grid:anchor id="bottomRightAnchor" x="39" y="39" adjust="ceil()"  />
 <polygon
     fill="red"
     stroke="none"
@@ -775,23 +780,29 @@ Stretch coordinates between two rounded anchors, either linearly or corner-to-co
 
 ### ?`stretchShape(mode)`
 
-Stretch an entire shape based on its bounds to an adjusted contour (like `recontour`). **TODO**: I generally question the utility of this operator because it would distort the shape (notably rounded arc corners), whereas combining realignment with recontouring is generally better. Nonetheless, it could be useful in certain cases 🤔. 
+Stretch an entire shape's frame based on its bounds to an adjusted contour (like `recontour`). **TODO**: I generally question the utility of this operator because it would distort the shape (notably rounded arc corners), whereas combining realignment with recontouring is generally better. Nonetheless, it could be useful in certain cases 🤔. 
+
+- `bounds`=extents – keywords `extents`, `fill`, `stroke`, `marker`, `clip`, `default`=`extents` similar to [`SVGGraphicsElement.getBBox`](https://developer.mozilla.org/en-US/docs/Web/API/SVGGraphicsElement/getBBox). The `extents` value uses the outermost extents, as if you called [SVGGraphicsElement.getBBox](https://developer.mozilla.org/en-US/docs/Web/API/SVGGraphicsElement/getBBox) with all options set true {fill, stroke, markers, clip}.
 
 ```xml
 <rect ... adjust="stretchShape(out)" />
 ```
 
+**NAMING**: `reframe`, since it stretches the outer frame? It's more concise, but it may not adequately convey that *stretching* happens, since reframing typically crops rather distorting the aspect ratio. Additionally the naming should align with `alignShape`. So, if we keep "shape" there, and this should probably keep "shape" too, but if that operator gets renamed to just "realign", then sensibly this operator should be shortened too.
+
 ### ?`clamp(attribute, min, max)`
 
-Clamp a value to minimum/maximum bound, which could be useful for setting a minimum value during rounding, like for `stroke-width`. **TODO**: If I have a dedicated `roundStrokeWidth` with a `minimum` parameter, is this still useful? Are there cases it would be useful for coordinates?
+Clamp a value to minimum/maximum bound, which could be useful for setting a minimum value during rounding, like for `stroke-width`.
 
+**TODO**:
+- If I have a dedicated `roundStrokeWidth` with a `minimum` parameter, is this still useful? Are there cases it would be useful for coordinates?
 
 ### ?`priority(level)`
 
-Specify a priority for the following operators, perhaps enabling some operators to clearly execute before others without ambiguity of dependency order. **TODO**: I want to avoid using this and just use implicit dependency ordering instead of named attachments, but it might be worth considering for child and sibling dependencies where `attach` alone isn't sufficient to resolve the ordering because of paradoxical cycles.
+Specify a priority for the following operators, perhaps enabling some operators to clearly execute before others without ambiguity of dependency order.
 
 ```xml
-<g adjust="attach(#innerAnchor)">
+<g adjust="attach(#innerAnchor)"><!-- Implicitly priority 0 -->
     <!--
         Round the anchor before adjusting the group, meaning the anchor's initial position
         is in screenspace with the default world-to-screen transform, before any parent adjustments.
@@ -800,6 +811,9 @@ Specify a priority for the following operators, perhaps enabling some operators 
     ...
 </g>
 ```
+
+**TODO**:
+- I want to avoid needing this operator and just using implicit dependency ordering instead of named attachments, but it might be worthwhile for child and sibling dependencies where `attach` alone isn't sufficient to fully resolve the ordering because of paradoxical cycles (where a parent refers to a rounded child, but the parent affects the child's translation).
 
 # Considerations
 
