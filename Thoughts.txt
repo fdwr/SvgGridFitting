@@ -1518,6 +1518,25 @@ Different ways of centering circles:
         <defs><rounding id=#defaultRounding adjust="floor(bias=0.5 spacing=2)"/></defs> // Round to pixel center at odd pixel
         <circle cx="60" cy="40" r="3" fill="red" adjust="align(topLeft #defaultRounding)">
 
+Order free keyword lists
+
+    The following API's accept a list of keywords in any order, which can be very convenient compared to positional parameters (easy to get wrong) or even named parameters (can be verbose).
+    Using that for grid fitting could cut down the size of multiparameter operators like recontour().
+
+    border: 1px solid red, font: italic bold 12px/1.5 serif, animation: 2s ease-in infinite alternate slide
+
+    preserveAspectRatio="xMidYMid slice" puts alignment and scaling mode in one value
+
+    TikZ mixes bare keywords with key=value pairs: 
+    \node[draw, circle, above left, thick, red]
+
+    gnuplot: set key top left outside box
+
+    HTML token lists: rel="noopener noreferrer", sandbox="allow-scripts allow-forms", autocomplete="shipping street-address".
+    Graphviz: style="filled,rounded,dashed"
+
+    DrawText with DT_CENTER | DT_VCENTER | DT_SINGLELINE
+
 Reference:
     TrueType
         https://docs.microsoft.com/en-us/typography/opentype/spec/tt_instructions#round-to-half-grid
