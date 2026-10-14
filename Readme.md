@@ -558,6 +558,17 @@ Round coordinate based on the current stroke-width so that even thicknesses are 
 
 Attach one shape or anchor to another named anchor, to nudge a microtranslation by it's rounding displacement.
 
+```xml
+<grid:anchor id="bottom-left-anchor" x="10" y="38" grid:adjust="round()" />
+<rect x="16" y="16" width="28" height="28" fill="red" grid:adjust="attach(#bottom-left-anchor)" />
+
+<anchor id="circleCenter" x="50" y="50" grid:adjust="recenter(40)"/>
+<g grid:adjust="attach(#circleCenter)">
+    <circle cx="50" cy="50" r="20" fill="red" />
+    <circle cx="50" cy="50" r="10" fill="white" />
+</g>
+```
+
 - `#anchorName` – name of the anchor to fetch the displacement from.
 
 ### `nudge(#anchor)`
@@ -566,6 +577,11 @@ Displace coordinates with a small translation from an anchor's rounding displace
 
 - `#anchorName` – name of the anchor to fetch the displacement from.
 - `redirect`=[1 0] – redirect the displacement vector of the coordinate by the matrix. See above.
+
+```xml
+<grid:anchor id="bottom-left-anchor" x="10" y="38" grid:adjust="round()" />
+<rect x="16" y="16" width="28" height="28" fill="red" grid:adjust="nudge(#bottom-left-anchor redirect=[1 1])" />
+```
 
 **NAMING**:
 - Use `translate`? e.g. `translate(#anchorName)` `translate(#anchorName1ForX #anchorName2ForY)`. I could, but it would confusingly differs from transform's `translate` by taking different parameters; it's less clear that it's translating by the tiny *displacement* of the anchor rather than say the x,y coordinate of the anchor; and `translate` can shift objects by huge amounts, whereas `nudge` is semantically more descriptive (a *small* translation).
