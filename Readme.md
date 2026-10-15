@@ -236,7 +236,7 @@ A reusable series of adjustments in the `<defs>` section, including rounding, an
 
 ### `<grid:transformation/>`
 
-A reuseable transformation list in the `<defs>` section (essentially `SVGTransformList`), including the standard `scale`, `translate`, `rotate`, and `shear` operations, plus the new `origin` which is equivalent to `transform-origin` folded directly into the `transform`. Defined transforms may be used in any `transform` attribute, including those on normal geometry along with those in rounding and constraints. The `matrix` function now takes an abbreviated form with just the first two elements, useful for expressing a uniform scale+rotation using a single 2D vector, where  `matrix(scaleX shearXToY)` expands `matrix(scaleX shearXToY -shearXToY scaleX 0 0)` (e.g. rotating by 30 degrees yields [0.866025404 0.5] and expands to [0.866025404 0.5 -0.5 0.866025404 0 0]). **NAMING**: I'm using the noun form `transformation` rather than verb `transform` to avoid confusion with "transform", since it's not an action applied to the scene, but rather a reusable component useable later by a "transform" statement.
+A reuseable transformation list in the `<defs>` section (essentially `SVGTransformList`), including the standard `scale`, `translate`, `rotate`, and `shear` operations, plus the new `origin` which is equivalent to `transform-origin` folded directly into the `transform`. Defined transforms may be used in any `transform` attribute, including those on normal geometry along with those in rounding and constraints. The `matrix` function now takes an abbreviated form with just the first two elements, useful for expressing a uniform scale+rotation using a single 2D vector, where  `matrix(scaleX shearXToY)` expands `matrix(scaleX shearXToY -shearXToY scaleX 0 0)` (e.g. rotating by 30 degrees yields [0.866025404 0.5] and expands to [0.866025404 0.5 -0.5 0.866025404 0 0]).
 
 - `id` – name of the transformation to use later in a `transform` or `adjust` attribute.
 - `transform` – the transformation list.
@@ -250,6 +250,9 @@ A reuseable transformation list in the `<defs>` section (essentially `SVGTransfo
 <g transform="#myTransform">...</g>
 <line grid:adjust="grid(#turn45Sqrt2) round()" x1="10" y1="10" x2="40" y2="40">
 ```
+
+**NAMING**:
+- I'm using the noun form `transformation` rather than verb `transform` to avoid confusion with "transform", since it's not an action applied to the scene, but rather a reusable component useable later by a "transform" statement.
 
 **TODO**:
 - Is `origin()` that useful? Should I delete it? Why did I originally add it 4 years ago? Hmm...
@@ -332,7 +335,8 @@ Implementations that support grid fitting should satisfy the `requiredExtensions
 </switch>
 ```
 
-**NAMING**: `pixelsPerUnit` and `pixelsPerView` rather than ppuRange and ppvRange?
+**NAMING**:
+- `pixelsPerUnit` and `pixelsPerView` rather than ppuRange and ppvRange?
 
 ## Adjustment operators:
 
@@ -796,15 +800,16 @@ Stretch coordinates between two rounded anchors, either linearly or corner-to-co
 
 ### ?`stretchShape(mode)`
 
-Stretch an entire shape's frame based on its bounds to an adjusted contour (like `recontour`). **TODO**: I generally question the utility of this operator because it would distort the shape (notably rounded arc corners), whereas combining realignment with recontouring is generally better. Nonetheless, it could be useful in certain cases 🤔. 
+Stretch an entire shape's frame based on its bounds to an adjusted contour (like `recontour`). **TODO**: I generally question the utility of this operator because it would distort the shape (notably rounded arc corners), whereas combining realignment with recontouring is generally better. Nonetheless, it could be useful in certain cases 🤔.
 
 - `bounds`=extents – keywords `extents`, `fill`, `stroke`, `marker`, `clip`, `default`=`extents` similar to [`SVGGraphicsElement.getBBox`](https://developer.mozilla.org/en-US/docs/Web/API/SVGGraphicsElement/getBBox). The `extents` value uses the outermost extents, as if you called [SVGGraphicsElement.getBBox](https://developer.mozilla.org/en-US/docs/Web/API/SVGGraphicsElement/getBBox) with all options set true {fill, stroke, markers, clip}.
 
 ```xml
-<rect ... adjust="stretchShape(out)" />
+<rect ... adjust="stretchShape(extents outward)" />
 ```
 
-**NAMING**: `reframe`, since it stretches the outer frame? It's more concise, but it may not adequately convey that *stretching* happens, since reframing typically crops rather distorting the aspect ratio. Additionally the naming should align with `alignShape`. So, if we keep "shape" there, and this should probably keep "shape" too, but if that operator gets renamed to just "realign", then sensibly this operator should be shortened too.
+**NAMING**:
+- `reframe`, since it stretches the outer frame? It's more concise, but it may not adequately convey that *stretching* happens, since reframing typically crops rather distorting the aspect ratio. Additionally the naming should align with `alignShape`. So, if we keep "shape" there, and this should probably keep "shape" too, but if that operator gets renamed to just "realign", then sensibly this operator should be shortened too. Reframe could make more sense if it had another parameter specifying stretching or alignment.
 
 ### ?`clamp(attribute, min, max)`
 
