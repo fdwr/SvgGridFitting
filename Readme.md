@@ -820,10 +820,10 @@ Clamp a value to minimum/maximum bound, which could be useful for setting a mini
 
 ### ?`priority(level)`
 
-Specify a priority for the following operators, perhaps enabling some operators to clearly execute before others without ambiguity of dependency order.
+Specify a priority for the following operators, enabling some operators to execute at a higher priority to resolve ambiguities of dependency ordering. When a priority is set, it applies to all following operators until the next priority is set.
 
 ```xml
-<g adjust="attach(#innerAnchor)"><!-- Implicitly priority 0 -->
+<g adjust="priority(0) attach(#innerAnchor)"><!-- Note it's implicitly priority 0 anyway -->
     <!--
         Round the anchor before adjusting the group, meaning the anchor's initial position
         is in screenspace with the default world-to-screen transform, before any parent adjustments.
@@ -834,12 +834,13 @@ Specify a priority for the following operators, perhaps enabling some operators 
 ```
 
 **TODO**:
-- I want to avoid needing this operator and just using implicit dependency ordering instead of named attachments, but it might be worthwhile for child and sibling dependencies where `attach` alone isn't sufficient to fully resolve the ordering because of paradoxical cycles (where a parent refers to a rounded child, but the parent affects the child's translation).
+- Can I avoid this and solely rely on implicit dependency ordering of named attachments? Priority might be necessary for child and sibling dependencies where `attach` alone isn't sufficient to fully resolve the ordering because of paradoxical cycles (where a parent refers to a rounded child, but the parent affects the child's translation).
+- Would adding priority require a scan through all the nodes and adjustment strings ahead of time?
 
 # Considerations
 
-- Why use imperative operations in `adjust` rather than purely declarative attributes? Originally I used a more declarative approach (`attributeX="foo" attributeY="bar"...`), but the interactions and ambiguity of operation order became too fuzzy. Plus it's more alike its cousin `transform` this way, and these adjustments are essentially screenspace transformations (microtranslations and scales).
-- Why not represent each of these as XML elements, with `stretch(...) separate(...)` being `<stretch .../><separate .../>` instead, like `<linearGradient .../><radialGradient .../>`? Meh, they're not mutually exclusive, and I *could* add elements too for each of these constructs, but do they simplify authorship, tooling, or implementation?
+- Why use imperative operations in `adjust` rather than purely declarative attributes? Originally I used a more declarative approach (`attributeX="foo" attributeY="bar"...`), but the interactions and ambiguity of operation order became fuzzy. Plus this approach is more like its cousin `transform="scale(...) translate(...)"`, and these adjustments are essentially screenspace transformations (microtranslations and scales).
+- Why not represent each of these as XML elements, with `stretch(...) separate(...)` being `<stretch .../><separate .../>` inside the parent element, like `<linearGradient .../><radialGradient .../>`? Well, they're not mutually exclusive, and I *could* add elements too for each of these constructs, but do they simplify authorship, tooling, or implementation?
 
 # Related
 
