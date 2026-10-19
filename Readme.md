@@ -77,7 +77,7 @@ Grid fitting attributes reside in the `grid:` namespace (or maybe `ps:` for pixe
       fill="red"
       stroke="none"
       points="12,1 28,1 39,12 39,28 28,39 12,39 1,28, 1,12"
-      grid:adjust="round()"
+      grid:adjust="round(xy)"
     />
     <!-- Round the path such that the stroke is well aligned (about 2.7 pixels wide). -->
     <polygon
@@ -85,7 +85,7 @@ Grid fitting attributes reside in the `grid:` namespace (or maybe `ps:` for pixe
       stroke="white"
       stroke-width="3"
       points="16,9 24,9 31,16 31,24 24,31 16,31 9,24, 9,16"
-      grid:adjust="roundStroke()"
+      grid:adjust="roundStroke(xy)"
     />
 </svg>
 ```
@@ -101,7 +101,7 @@ Adjustments apply to all points within a shape, and `adjust` can take a *sequenc
         Use a free anchor to round the rectangle's bottom-left to the nearest whole pixel corner
         while leaving the size alone and right edge potentially fuzzy.
     -->
-    <grid:anchor id="bottom-left-anchor" x="10" y="38" grid:adjust="round()" />
+    <grid:anchor id="bottom-left-anchor" x="10" y="38" grid:adjust="round(xy)" />
     <rect x="16" y="16" width="28" height="28" fill="red" grid:adjust="attach(#bottom-left-anchor)" />
 
     <!--
@@ -193,7 +193,7 @@ An invisible point to help anchor other shapes' points to and construct microtra
 
 ```xml
 <!-- Round the anchor to the nearest pixel corner -->
-<grid:anchor id="someShapeCenter" x="30" y="40" adjust="round()" />
+<grid:anchor id="someShapeCenter" x="30" y="40" adjust="round(xy)" />
 
 <!-- Round the anchor to the nearest pixel center -->
 <grid:anchor id="differentShapeCenter" x="30" y="40" adjust="round(xy 0.5)" />
@@ -248,7 +248,7 @@ A reuseable transformation list in the `<defs>` section (essentially `SVGTransfo
 </defs>
 
 <g transform="#myTransform">...</g>
-<line grid:adjust="grid(#turn45Sqrt2) round()" x1="10" y1="10" x2="40" y2="40">
+<line grid:adjust="grid(#turn45Sqrt2) round(xy)" x1="10" y1="10" x2="40" y2="40">
 ```
 
 **NAMING**:
@@ -391,7 +391,7 @@ round value/coordinate to nearest whole integer or multiple of `spacing`, defaul
 
 ```xml
 <!-- Round all the 4 points (corners) of the rectangle -->
-<rect ... grid:adjust="round()"/>
+<rect ... grid:adjust="round(xy)"/>
 
 <!-- Round to every pixel center using half bias -->
 <rect ... grid:adjust="round(xy 0.5)"/>
@@ -563,7 +563,7 @@ Round coordinate based on the current stroke-width so that even thicknesses are 
 Attach one shape or anchor to another named anchor, to nudge a microtranslation by it's rounding displacement.
 
 ```xml
-<grid:anchor id="bottom-left-anchor" x="10" y="38" grid:adjust="round()" />
+<grid:anchor id="bottom-left-anchor" x="10" y="38" grid:adjust="round(xy)" />
 <rect x="16" y="16" width="28" height="28" fill="red" grid:adjust="attach(#bottom-left-anchor)" />
 
 <anchor id="circleCenter" x="50" y="50" grid:adjust="recenter(40)"/>
@@ -583,7 +583,7 @@ Displace coordinates with a small translation from an anchor's rounding displace
 - `redirect`=[1 0] – redirect the displacement vector of the coordinate by the matrix. See above.
 
 ```xml
-<grid:anchor id="bottom-left-anchor" x="10" y="38" grid:adjust="round()" />
+<grid:anchor id="bottom-left-anchor" x="10" y="38" grid:adjust="round(xy)" />
 <rect x="16" y="16" width="28" height="28" fill="red" grid:adjust="nudge(#bottom-left-anchor redirect=[1 1])" />
 ```
 
@@ -619,6 +619,17 @@ Realigns an entire shape with a microtranslation from rounding the given local a
 
 <!-- Recenter the rectangle horizontally, and move it upward. -->
 <rect x="50" y="50" width="40" height="20" fill="red" grid:adjust="realignShape(fill [recenter, floor] [center, left])"/>
+
+
+
+<rect x="50" y="50" width="40" height="20" fill="red" grid:adjust="realignShape(bounds=fill rounding=[recenter, floor] origin=[center, left])"/>
+
+
+
+<rect x="50" y="50" width="40" height="20" fill="red" grid:adjust="realignShape(fill center upward left leftward)"/>
+
+
+
 
 <!-- Align the rectangle's bottom right corner downward and rightward. -->
 <rect x="50" y="50" width="40" height="20" fill="red" grid:adjust="realignShape(fill ceil [bottom, right])"/>
@@ -701,7 +712,7 @@ Specify the rounding grid used by any later `round` commands (which defaults to 
     |   |
     x‐‐‐x
 -->
-<rect ... grid:adjust="grid() round()"/>
+<rect ... grid:adjust="grid() round(xy)"/>
 
 <!--
     Round to half pixels, equivalent in this case to a spacing of 0.5 on the round.
@@ -711,7 +722,7 @@ Specify the rounding grid used by any later `round` commands (which defaults to 
     x x x
 -->
 <!--  -->
-<rect ... grid:adjust="grid(0.5) round()"/>
+<rect ... grid:adjust="grid(0.5) round(xy)"/>
 
 <!--
     Round every 2 pixels, equivalent in this case to a spacing of 2 on the round.
@@ -723,7 +734,7 @@ Specify the rounding grid used by any later `round` commands (which defaults to 
     x‐-‐o‐-‐x
 -->
 <!--  -->
-<rect ... grid:adjust="grid(2) round()"/>
+<rect ... grid:adjust="grid(2) round(xy)"/>
 
 <!--
     Round diagonally to nearest pixel corner or pixel center, but not pixel sides
@@ -732,7 +743,7 @@ Specify the rounding grid used by any later `round` commands (which defaults to 
     | x |
     x‐‐‐x
 -->
-<rect ... grid:adjust="grid(0.5 0.5) round()"/>
+<rect ... grid:adjust="grid(0.5 0.5) round(xy)"/>
 
 <!--
     Round diagonally double the to nearest pixel corner or pixel center.

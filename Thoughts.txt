@@ -1381,8 +1381,8 @@ Achieving inner strokes without stroke-mode via clip-path:
     
     <!-- Apply clip path to the stroked element -->
     <rect id="selfClip" x="50" y="50" width="500" height="500" 
-            fill="lightblue" stroke="black" stroke-width="20" 
-            clip-path="url(#innerClip)" /> <!-- Clip to original shape -->
+        fill="lightblue" stroke="black" stroke-width="20" 
+        clip-path="url(#innerClip)" /> <!-- Clip to original shape -->
     </svg>
 
 Distributing inner points across adjusted outer bounds:
@@ -1518,10 +1518,10 @@ Different ways of centering circles:
         <defs><rounding id=#defaultRounding adjust="floor(bias=0.5 spacing=2)"/></defs> // Round to pixel center at odd pixel
         <circle cx="60" cy="40" r="3" fill="red" adjust="align(topLeft #defaultRounding)">
 
-Order free keyword lists
+Order free keyword lists:
 
-    The following API's accept a list of keywords in any order, which can be very convenient compared to positional parameters (easy to get wrong) or even named parameters (can be verbose).
-    Using that for grid fitting could cut down the size of multiparameter operators like recontour().
+    The following functions accept a list of keyword parameters in any order, which is quite convenient and concise compared to positional parameters (easy to get wrong) or even named parameters (can be verbose), similar to the CSS `background` shorthand property where the thickness, color, and style flexibly come in any order.
+    Using them really cuts down on the ceremony of multiparameter operators like recontour().
 
     border: 1px solid red, font: italic bold 12px/1.5 serif, animation: 2s ease-in infinite alternate slide
 
@@ -1536,6 +1536,73 @@ Order free keyword lists
     Graphviz: style="filled,rounded,dashed"
 
     DrawText with DT_CENTER | DT_VCENTER | DT_SINGLELINE
+
+        recontour([outside outward clockwise] 2)
+        recontour(keywords=[outside outward clockwise] size=2)
+        recontour(outside outward clockwise 2)
+        recontour(size=2 outside outward sizeRounding=ceil windingDirection=clockwise)
+        recontour(size=2 outside outward sizeRounding=ceil clockwise)
+        recontour(2 ceil)
+
+        outward: positionRounding=[ceil ceil floor floor]
+        inward: positionRounding=[floor floor ceil ceil]
+        upward: positionRounding=[- floor - floor]
+        upward: positionRounding=[- away]
+        downward: positionRounding=[- toward]
+        midward: positionRounding=[center center]
+        positionOrigin=[low high] / [low low] / [left top]
+        positionOrigin=[near far] / [left far]
+
+        upward leftward
+        upward rightward
+        outward leftward
+
+        positionRounding=ceil
+
+        inside
+        outside
+        top/topside/upside
+        bottom/bottomside/downside
+        left/leftside
+        right/rightside
+        midline
+        midpoint
+        overline
+        underline
+        poles
+        sides/laterals
+
+        inward
+        outward
+        upward
+        downward
+        leftward
+        rightward
+        hitherward
+        yonward
+        midward/centerward/centered
+        noward? noneward? still?
+        toward? fromward? wayward?
+        narrower/inwardX, wider/outwardX
+        shorter/inwardY, taller/outwardY
+
+        sameVertical, sameHorizontal
+        sameY, sameX
+        sameHeight, sameWidth
+        sameSize
+
+        round(phase/offset/shift ...)
+
+        floor(offset=[0.5 0.5])
+
+        realign(extents left rightward)
+        realign(fill midpoint midward)
+        recenterShape()
+        realign(xy size=[3 4] midpoint midward)?
+        realignPoints?
+        realignShape?
+        reframe(outside outward stretch)
+        reframe(inside inward align)
 
 Reference:
     TrueType
